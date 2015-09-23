@@ -33,6 +33,8 @@ export box = (n) -> [ n, n ]
 
 export rnd = (n) -> n * Math.random!
 
+export div = (a, b) -> floor a / b
+
 export pi = Math.PI
 
 export tau = pi * 2

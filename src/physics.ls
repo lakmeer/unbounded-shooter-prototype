@@ -1,4 +1,5 @@
 
+# Require
 
 { id, log, asin, v2 } = require \std
 
@@ -9,46 +10,49 @@
 # Knows about physics properties and how to simulate them
 #
 
-export class Physics
+export create = ({ p, v, a, f }) ->
+  pos: if p then [p.0, p.1] else [0 0]
+  vel: if v then [v.0, v.1] else [0 0]
+  acc: if a then [a.0, a.1] else [0 0]
+  fri: f or 1
 
-  ({ p, v, a, f }) ->
-    @pos = if p then [p.0, p.1] else [0 0]
-    @vel = if v then [v.0, v.1] else [0 0]
-    @acc = if a then [a.0, a.1] else [0 0]
-    @fri = f or 1
+export coerce = (e, { p, v, a, f }) ->
+  e.pos = if p then [p.0, p.1] else [0 0]
+  e.vel = if v then [v.0, v.1] else [0 0]
+  e.acc = if a then [a.0, a.1] else [0 0]
+  e.fri = f or 1
 
-  update: (Δt) ->
-    @vel = (@vel `v2.add` (@acc `v2.scale` Δt)) `v2.scale` @fri
-    @pos =  @pos `v2.add` (@vel `v2.scale` Δt)  `v2.add` (@acc `v2.scale` (0.5*Δt*Δt))
+export update = (e, Δt) ->
+  e.vel = (e.vel `v2.add` (e.acc `v2.scale` Δt)) `v2.scale` e.fri
+  e.pos =  e.pos `v2.add` (e.vel `v2.scale` Δt)  `v2.add`  (e.acc `v2.scale` (0.5*Δt*Δt))
 
-  move-to: ->
-    @set-pos ...
+export set-pos = (e, [ x, y ]) ->
+  e.pos.0 = x
+  e.pos.1 = y
 
-  set-pos: ([ x, y ]) ->
-    @pos.0 = x
-    @pos.1 = y
+export set-vel = (e, [ x, y ]) ->
+  e.vel.0 = x
+  e.vel.1 = y
 
-  set-vel: ([ x, y ]) ->
-    @vel.0 = x
-    @vel.1 = y
+export set-acc = (e, [ x, y ]) ->
+  e.acc.0 = x
+  e.acc.1 = y
 
-  set-acc: ([ x, y ]) ->
-    @acc.0 = x
-    @acc.1 = y
+export add-pos = (e, [ x, y ]) ->
+  e.pos.0 += x
+  e.pos.1 += y
 
-  add-pos: ([ x, y ]) ->
-    @pos.0 += x
-    @pos.1 += y
+export add-vel = (e, [ x, y ]) ->
+  e.vel.0 += x
+  e.vel.1 += y
 
-  add-vel: ([ x, y ]) ->
-    @vel.0 += x
-    @vel.1 += y
+export get-bearing-to = (e, [ x, y ]) ->
+  xx = x - e.pos.0
+  yy = y - e.pos.1
+  asin -xx/v2.hyp [ xx, yy ]
 
-  get-bearing-to: ([ x, y ]) ->
-    xx = x - @pos.0
-    yy = y - @pos.1
-    asin -xx/v2.hyp [ xx, yy ]
+export clone-pos = (e) ->
+  [ e.pos.0, e.pos.1 ]
 
-  clone-pos: ->
-    [ @pos.0, @pos.1 ]
+export move = set-pos
 

@@ -32,10 +32,10 @@ global.game-state =
   target-pos: [0 500]
   player-bullets: []
   input-state:
-    fire: off
-    up: off
-    down: off
-    left: off
+    fire:  off
+    up:    off
+    down:  off
+    left:  off
     right: off
   timers:
     auto-fire-timer: Timer.create auto-fire-speed
@@ -76,14 +76,32 @@ update = (Δt, t) ->
     bullet.life -= bullet.Δlife * Δt
     bullet.life > 0
 
-  if @input-state.up    => @player.pos.1 += max-speed * Δt
-  if @input-state.down  => @player.pos.1 -= max-speed * Δt
-  if @input-state.left  => @player.pos.0 -= max-speed * Δt
-  if @input-state.right => @player.pos.0 += max-speed * Δt
-
   @player.pos.1 += auto-travel-speed * Δt
 
+
+  # Normalise control input to unit circle
+
+  left-to-right-vel =
+    if @input-state.left then -1
+    else if @input-state.right then 1
+    else 0
+
+  front-to-back-vel =
+    if @input-state.down then -1
+    else if @input-state.up then 1
+    else 0
+
+  input-vel  = [ left-to-right-vel, front-to-back-vel ]
+  player-vel = (v2.norm input-vel) `v2.scale` max-speed
+
+  if @input-state.up    => @player.pos.1 += player-vel.1 * Δt
+  if @input-state.down  => @player.pos.1 += player-vel.1 * Δt
+  if @input-state.left  => @player.pos.0 += player-vel.0 * Δt
+  if @input-state.right => @player.pos.0 += player-vel.0 * Δt
+
+
   # Camera always tracks player, unlike other shooters where FoR is mostly static
+
   @camera-pos.1 = @player.pos.1 + 400
 
   if @camera-pos.0 - @player.pos.0 > camera-drift-limit

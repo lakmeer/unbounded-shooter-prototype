@@ -15,21 +15,17 @@ export create = (target, { disabled=no }={}) ->
 
 export update-and-stop = (timer, Δt) ->
   if timer.active
-    if timer.current + Δt > timer.target
-      timer.elapsed = yes
+    if timer.current + Δt >= timer.target
       timer.current = timer.target
-      timer.disabled = yes
+      timer.elapsed = yes
+      timer.active = no
     else
       timer.current += Δt
       timer.elapsed = no
-    timer.active = not timer.elapsed
-  else
-    timer.elapsed = no
-    timer.active = no
 
 export update-and-carry = (timer, Δt) ->
   if timer.active
-    if timer.current + Δt > timer.target
+    if timer.current + Δt >= timer.target
       timer.elapsed = yes
       timer.current = (timer.current + Δt) % timer.target
     else

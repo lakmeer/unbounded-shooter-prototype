@@ -1,7 +1,7 @@
 
 # Require
 
-{ id, log, floor, sin, cos, div, v2 } = require \std
+{ id, log, floor, tau, sin, cos, div, v2 } = require \std
 
 pad-two = (str) -> if str.length < 2 then "0#str" else str
 hex = (decimal) -> pad-two (floor decimal).to-string 16
@@ -31,12 +31,15 @@ flip-flop-time       = 0.2
 global.game-state =
   camera-zoom: 1
   camera-pos: [0 0]
+
   player:
     pos: [0 0]
     vel: [0 0]
     flipping: no
     flopping: no
     color: 0
+    rotation: 0
+
   target-pos: [0 500]
   player-bullets: []
   input-state:
@@ -58,9 +61,33 @@ colors =
 
 # Init
 
+class Canvas
+  ->
+    @canvas = document.create-element \canvas
+    @ctx = @canvas.get-context \2d
+    @canvas.height = window.inner-height
+    @canvas.width = window.inner-height / 1.5
+
+  clear: ->
+    @ctx.clear-rect 0, 0, @canvas.width, @canvas.height
+
+  install: (host) ->
+    host.append-child @canvas
+
 main-canvas  = new Blitter
 frame-driver = new FrameDriver
 
+debug-canvas = new Canvas
+
+color-barrel =
+  draw: (cnv, pos, θ, o = tau * 7/12) ->
+    for color, i in colors
+      cnv.ctx.fill-style = rgb color
+      cnv.ctx.begin-path!
+      cnv.ctx.move-to pos.0, pos.1
+      cnv.ctx.arc pos.0, pos.1, 75, θ + tau/3*i + o, θ + tau/3*(i+1) + o
+      cnv.ctx.close-path!
+      cnv.ctx.fill!
 
 shoot = ->
   if game-state.shoot-alternate
@@ -97,6 +124,9 @@ render = (Δt, t) ->
   main-canvas.draw-local-grid!
   main-canvas.rect  @target-pos, [90 90], color: \blue
   main-canvas.uptri @player.pos, [50 50], color: player-color
+
+  debug-canvas.clear!
+  color-barrel.draw debug-canvas, [100 100], @player.rotation
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
@@ -243,4 +273,5 @@ frame-driver.start!
 
 # Init - assign
 main-canvas.install document.body
+debug-canvas.install document.body
 

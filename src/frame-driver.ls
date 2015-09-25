@@ -56,7 +56,7 @@ export class FrameDriver
 
     @state.last-frame-time = now
     @state.frame += 1
-    @callbacks.frame @state.frame
+    @callbacks.frame Δt/1000, @state.last-tick-time/1000, @state.frame, @fps
 
   tick: ~>
     if @state.running then delay 0, @tick

@@ -1,4 +1,11 @@
 
+{ log } = require \std
+
+
+#
+# Blitter
+#
+
 export class Blitter
 
   mode-to-operation = (mode) ->
@@ -8,8 +15,10 @@ export class Blitter
     | MODE_ADD    => \lighten
     | otherwise  => \source-over
 
-  local-grid-size    = 2000
-  local-grid-fidelity = 250
+  local-grid-size      = 500
+  local-grid-fidelity  = 100
+  camera-frustrum-size = [ 500, 750 ]
+  camera-aspect        = 1.5
 
   ->
     @canvas = document.create-element \canvas
@@ -17,16 +26,29 @@ export class Blitter
     @set-size [ window.inner-width, window.inner-height ]
 
   set-size: (size) ->
-    @w = @canvas.width  = size.0
-    @h = @canvas.height = size.1
+    if size.0 > size.1
+      @w = @canvas.width  = size.1 / camera-aspect
+      @h = @canvas.height = size.1
+    else
+      @w = @canvas.width  = size.0
+      @h = @canvas.height = size.0 * camera-aspect
 
-  translate-by-camera: ([x, y]) ->
-    [ @w/2 + x - game-state.camera-pos.0, @h/2 - y + game-state.camera-pos.1 ]
+    #log window.inner-width, window.inner-height, @w, @h
+
+    @wf = @w / camera-frustrum-size.0
+    @hf = @h / camera-frustrum-size.1
+
+  translate-pos: ([x, y]) ->
+    [ @w/2 + (x - game-state.camera-pos.0) * @wf,
+      @h/2 - (y - game-state.camera-pos.1) * @hf ]
+
+  translate-size: ([w, h]) ->
+    [ w * @wf, h * @hf ]
 
   rect: (pos, size, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
+    [x, y] = @translate-pos pos
+    [w, h] = @translate-size size
     @ctx.global-composite-operation = mode-to-operation mode
-    [x, y] = @translate-by-camera pos
-    [w, h] = size # TODO: Actual game units
     @ctx.global-alpha = alpha
     @ctx.fill-style = color
     @ctx.fill-rect x - w/2, y - h/2, w, h
@@ -39,8 +61,8 @@ export class Blitter
     @ctx.stroke!
 
   _line: (start, end) ->
-    [x1, y1] = @translate-by-camera start
-    [x2, y2] = @translate-by-camera end
+    [x1, y1] = @translate-pos start
+    [x2, y2] = @translate-pos end
     @ctx.move-to x1, y1
     @ctx.line-to x2, y2
 
@@ -54,8 +76,8 @@ export class Blitter
     @ctx.fill!
 
   _uptri: (pos, size) ->
-    [x, y] = @translate-by-camera pos
-    [w, h] = size
+    [x, y] = @translate-pos pos
+    [w, h] = @translate-size size
     @ctx.move-to x - w/2, y + h/2
     @ctx.line-to x + w/2, y + h/2
     @ctx.line-to x +  0,  y - h/2
@@ -71,8 +93,8 @@ export class Blitter
     @ctx.fill!
 
   _dntri: (pos, size) ->
-    [x, y] = @translate-by-camera pos
-    [w, h] = size
+    [x, y] = @translate-pos pos
+    [w, h] = @translate-size size
     @ctx.move-to x - w/2, y - h/2
     @ctx.line-to x + w/2, y - h/2
     @ctx.line-to x +  0,  y + h/2
@@ -109,5 +131,4 @@ export class Blitter
 
   install: (host) ->
     host.append-child @canvas
-
 

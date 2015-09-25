@@ -18,8 +18,8 @@ Bullet = require \./bullet
 
 # Config
 
-auto-travel-speed    = 500
-max-speed            = 500
+auto-travel-speed    = 100
+max-speed            = 100
 auto-fire-speed      = 0.08
 dual-fire-separation = 35
 camera-drift-limit   = 500
@@ -48,6 +48,7 @@ global.game-state =
   timers:
     auto-fire-timer: Timer.create auto-fire-speed
     flip-flop-timer: Timer.create flip-flop-time, disabled: true
+  shoot-alternate: no
 
 colors =
   [1 0 0]
@@ -61,16 +62,14 @@ main-canvas  = new Blitter
 frame-driver = new FrameDriver
 
 
-shoot-alternate = no
-
 shoot = ->
-  if shoot-alternate
+  if game-state.shoot-alternate
     left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-    game-state.player-bullets.push Bullet.create left
+    game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color]
   else
     right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-    game-state.player-bullets.push Bullet.create right
-  shoot-alternate := not shoot-alternate
+    game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color]
+  game-state.shoot-alternate = not game-state.shoot-alternate
 
 lerp = (t, a, b) ->
   a + t * (b - a)
@@ -175,9 +174,12 @@ update = (Δt, t) ->
     Timer.reset @timers.flip-flop-timer
 
 
-  # Camera always tracks player, unlike other shooters where FoR is mostly static
+  # Camera tracking
 
-  @camera-pos.1 = @player.pos.1 + 400
+  @camera-pos.0 = @player.pos.0
+  @camera-pos.1 = @player.pos.1 + 200
+
+  return
 
   if @camera-pos.0 - @player.pos.0 > camera-drift-limit
     @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)

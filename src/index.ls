@@ -1,7 +1,7 @@
 
 # Require
 
-{ id, log, floor, tau, sin, cos, div, v2 } = require \std
+{ id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
 
 pad-two = (str) -> if str.length < 2 then "0#str" else str
 hex = (decimal) -> pad-two (floor decimal).to-string 16
@@ -22,7 +22,7 @@ auto-travel-speed    = 100
 max-speed            = 100
 auto-fire-speed      = 0.08
 dual-fire-separation = 35
-camera-drift-limit   = 500
+camera-drift-limit   = 200   # TODO: Make camera seek center gradually
 flip-flop-time       = 0.2
 
 
@@ -36,27 +36,29 @@ global.game-state =
     pos: [0 0]
     vel: [0 0]
     flipping: no
-    flopping: no
+    flopping: yes
     color: 0
     rotation: 0
 
   target-pos: [0 500]
   player-bullets: []
   input-state:
-    fire:  off
     up:    off
     down:  off
     left:  off
     right: off
+    flip:  off
+    flop:  on
+    fire:  off
   timers:
     auto-fire-timer: Timer.create auto-fire-speed
     flip-flop-timer: Timer.create flip-flop-time, disabled: true
   shoot-alternate: no
 
 colors =
-  [1 0 0]
-  [0 1 0]
-  [0 0 1]
+  [1 0 0] [1 1 0] [0 1 0]
+  [0 1 0] [0 1 1] [0 0 1]
+  [0 0 1] [1 0 1] [1 0 0]
 
 
 # Init
@@ -76,18 +78,38 @@ class Canvas
 
 main-canvas  = new Blitter
 frame-driver = new FrameDriver
-
 debug-canvas = new Canvas
 
 color-barrel =
-  draw: (cnv, pos, θ, o = tau * 7/12) ->
+  draw: (cnv, pos, θ, r = 75, o = tau * 9/12, m = colors.length) ->
     for color, i in colors
       cnv.ctx.fill-style = rgb color
       cnv.ctx.begin-path!
       cnv.ctx.move-to pos.0, pos.1
-      cnv.ctx.arc pos.0, pos.1, 75, θ + tau/3*i + o, θ + tau/3*(i+1) + o
+      cnv.ctx.arc pos.0, pos.1, r, -θ + tau/m*i + o, -θ + tau/m*(i+1) + o
       cnv.ctx.close-path!
       cnv.ctx.fill!
+    cnv.ctx.stroke-style = \white
+    cnv.ctx.begin-path!
+    cnv.ctx.move-to pos.0, pos.1
+    cnv.ctx.line-to pos.0 + r*sin(0), pos.1 - r*cos(0)
+    cnv.ctx.close-path!
+    cnv.ctx.stroke!
+
+
+float-wrap = (min, max, n) -->
+  if n >= max
+    min + (n - min) % (max - min)
+  else if n < min
+    min - (n + min) % (max - min)
+  else
+    n
+
+color-wrap = float-wrap 0, colors.length
+tau-wrap = float-wrap 0, tau
+
+rotation-to-color = (θ) ->
+  color-wrap floor (tau-wrap θ) / (tau/colors.length)
 
 shoot = ->
   if game-state.shoot-alternate
@@ -113,9 +135,9 @@ render = (Δt, t) ->
 
   player-color = rgb do
     if @player.flipping
-      lerp-color p, colors[@player.color], colors[wrap 0, colors.length - 1, @player.color - 1]
-    else if @player.flopping
       lerp-color p, colors[@player.color], colors[wrap 0, colors.length - 1, @player.color + 1]
+    else if @player.flopping
+      lerp-color p, colors[@player.color], colors[wrap 0, colors.length - 1, @player.color - 1]
     else
       colors[@player.color]
 
@@ -127,6 +149,8 @@ render = (Δt, t) ->
 
   debug-canvas.clear!
   color-barrel.draw debug-canvas, [100 100], @player.rotation
+  debug-canvas.ctx.fill-style = rgb colors[@player.color]
+  debug-canvas.ctx.fill-rect 98, 10, 4, 15
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
@@ -179,37 +203,55 @@ update = (Δt, t) ->
   # Flipflopping
   #
 
-  # Check if in-progress flipflopping has ended
-
   # TODO: Work out if timer update feels better before or after
   Timer.update-and-stop @timers.flip-flop-timer, Δt
 
+  # Check if in-progress flipflopping has ended
   if @timers.flip-flop-timer.elapsed
     if @player.flipping
-      @player.color = wrap 0, colors.length - 1, @player.color - 1
+      @player.color = wrap 0, colors.length - 1, @player.color + 1
       @player.flipping = no
 
     if @player.flopping
-      @player.color = wrap 0, colors.length - 1, @player.color + 1
+      @player.color = wrap 0, colors.length - 1, @player.color - 1
       @player.flopping = no
 
+    #@player.rotation = @player.color * tau/3
+
+  else
+    # Update rotation based on timer
+    p = Timer.get-progress @timers.flip-flop-timer
+    #if @player.flipping
+      #@player.rotation = @player.color * tau/3 + p * tau/3
+    #if @player.flopping
+      #@player.rotation = @player.color * tau/3 - p * tau/3
+
+  # Consume inputs
   if @input-state.flip
+    if not @player.flipping
+      Timer.reset @timers.flip-flop-timer
     @player.flipping = yes
     @player.flopping = no
-    Timer.reset @timers.flip-flop-timer
+    @input-state.flip = no
 
   if @input-state.flop
+    if not @player.flopping
+      Timer.reset @timers.flip-flop-timer
     @player.flipping = no
     @player.flopping = yes
-    Timer.reset @timers.flip-flop-timer
+    @input-state.flop = no
+
+
+  # Auto rotate
+
+  @player.rotation = t
+  @player.color = rotation-to-color @player.rotation
 
 
   # Camera tracking
 
-  @camera-pos.0 = @player.pos.0
+  #@camera-pos.0 = @player.pos.0
   @camera-pos.1 = @player.pos.1 + 200
-
-  return
 
   if @camera-pos.0 - @player.pos.0 > camera-drift-limit
     @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)

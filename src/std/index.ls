@@ -11,6 +11,8 @@ export floor = Math.floor
 
 export sqrt = Math.sqrt
 
+export abs = Math.abs
+
 export min = Math.min
 
 export sin = Math.sin

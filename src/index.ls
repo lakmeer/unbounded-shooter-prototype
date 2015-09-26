@@ -6,6 +6,12 @@
 pad-two = (str) -> if str.length < 2 then "0#str" else str
 hex = (decimal) -> pad-two (floor decimal).to-string 16
 rgb = ([r,g,b]) -> "##{hex r*255}#{hex g*255}#{hex b*255}"
+normalise-rotation = (θ) -> if θ < 0 then tau - (-θ % tau) else θ % tau
+rotation-to-color = (θ) ->
+  if 0 < θ < tau
+    floor (θ/tau) * colors.length
+  else
+    0
 
 require \./global
 
@@ -40,8 +46,6 @@ global.game-state =
     color: 0
     rotation: 0
 
-  target-pos: [0 500]
-  player-bullets: []
   input-state:
     up:    off
     down:  off
@@ -50,15 +54,29 @@ global.game-state =
     flip:  off
     flop:  on
     fire:  off
+    mouse-x: 0
+    mouse-y: 0
+
   timers:
     auto-fire-timer: Timer.create auto-fire-speed
     flip-flop-timer: Timer.create flip-flop-time, disabled: true
+
   shoot-alternate: no
+  target-pos: [0 500]
+  player-bullets: []
 
 colors =
   [1 0 0] [1 1 0] [0 1 0]
   [0 1 0] [0 1 1] [0 0 1]
   [0 0 1] [1 0 1] [1 0 0]
+
+rotation-history = []
+rotation-history-limit = 200
+
+push-rotation-history = (n) ->
+  rotation-history.push n
+  if rotation-history.length >= rotation-history-limit
+    rotation-history.shift!
 
 
 # Init
@@ -82,34 +100,20 @@ debug-canvas = new Canvas
 
 color-barrel =
   draw: (cnv, pos, θ, r = 75, o = tau * 9/12, m = colors.length) ->
-    for color, i in colors
-      cnv.ctx.fill-style = rgb color
-      cnv.ctx.begin-path!
-      cnv.ctx.move-to pos.0, pos.1
-      cnv.ctx.arc pos.0, pos.1, r, -θ + tau/m*i + o, -θ + tau/m*(i+1) + o
-      cnv.ctx.close-path!
-      cnv.ctx.fill!
-    cnv.ctx.stroke-style = \white
-    cnv.ctx.begin-path!
-    cnv.ctx.move-to pos.0, pos.1
-    cnv.ctx.line-to pos.0 + r*sin(0), pos.1 - r*cos(0)
-    cnv.ctx.close-path!
-    cnv.ctx.stroke!
-
-
-float-wrap = (min, max, n) -->
-  if n >= max
-    min + (n - min) % (max - min)
-  else if n < min
-    min - (n + min) % (max - min)
-  else
-    n
-
-color-wrap = float-wrap 0, colors.length
-tau-wrap = float-wrap 0, tau
-
-rotation-to-color = (θ) ->
-  color-wrap floor (tau-wrap θ) / (tau/colors.length)
+    let this = cnv.ctx
+      for color, i in colors
+        @fill-style = rgb color
+        @begin-path!
+        @move-to pos.0, pos.1
+        @arc pos.0, pos.1, r, -θ + tau/m*i + o, -θ + tau/m*(i+1) + o
+        @close-path!
+        @fill!
+      @stroke-style = \white
+      @begin-path!
+      @move-to pos.0, pos.1
+      @line-to pos.0 + r*sin(0), pos.1 - r*cos(0)
+      @close-path!
+      @stroke!
 
 shoot = ->
   if game-state.shoot-alternate
@@ -151,6 +155,13 @@ render = (Δt, t) ->
   color-barrel.draw debug-canvas, [100 100], @player.rotation
   debug-canvas.ctx.fill-style = rgb colors[@player.color]
   debug-canvas.ctx.fill-rect 98, 10, 4, 15
+
+  # Draw rotation graph
+  let this = debug-canvas.ctx
+    { width, height } = debug-canvas.canvas
+    for d, x in rotation-history
+      @fill-style = rgb colors[ rotation-to-color d ]
+      @fill-rect x/rotation-history-limit * width, (height - 100) - d * 10, 2, 2
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
@@ -244,9 +255,12 @@ update = (Δt, t) ->
 
   # Auto rotate
 
-  @player.rotation = t
-  @player.color = rotation-to-color @player.rotation
+  @player.rotation = normalise-rotation -2*tau + 4*tau * @input-state.mouse-x
 
+
+  push-rotation-history @player.rotation
+
+  @player.color = rotation-to-color @player.rotation
 
   # Camera tracking
 
@@ -274,6 +288,10 @@ LEFT   = 37
 RIGHT  = 39
 UP     = 38
 DOWN   = 40
+
+document.add-event-listener \mousemove, ({ pageX, pageY }) ->
+  game-state.input-state.mouse-x = pageX / window.inner-width
+  game-state.input-state.mouse-y = pageY / window.inner-height
 
 document.add-event-listener \keydown, ({ which }:event) ->
   if event.shift-key then log which

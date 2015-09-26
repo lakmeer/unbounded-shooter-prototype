@@ -36,7 +36,7 @@ export class Input
   global.TRIGGER_FLOP = Symbol \trigger-flop
   global.MOUSE_MOVE   = Symbol \mouse-move
 
-  simulated-travel-time = 0.1
+  simulated-travel-time = 0.05
 
   ->
     @pending-events = [ ]
@@ -101,7 +101,6 @@ export class Input
 
   dispatch-key-response: (dir, which) ->
     switch which
-    | ESCAPE => @push-event BUTTON_PAUSE, dir
     | KEY_Z  => @simulate-trigger-motion  0, dir
     | KEY_C  => @simulate-trigger-motion  1, dir
     | KEY_X  => @push-event BUTTON_FIRE,  dir
@@ -109,5 +108,6 @@ export class Input
     | LEFT   => @push-event BUTTON_LEFT,  dir
     | DOWN   => @push-event BUTTON_DOWN,  dir
     | RIGHT  => @push-event BUTTON_RIGHT, dir
+    | ESCAPE => (if dir then frame-driver.toggle!)
     | _ => return false
 

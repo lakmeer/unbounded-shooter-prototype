@@ -355,14 +355,6 @@ update = (Δt, t) ->
 
 
   #
-  # Consume input event queue
-  #
-
-  while event = input.pending-events.shift!
-    log event
-
-
-  #
   # Flipflopping
   #
 
@@ -388,12 +380,6 @@ update = (Δt, t) ->
   push-rotation-history @player.rotation
 
 
-  if @input-state.pause
-    log \on
-    frame-driver.toggle!
-    @input-state.pause = off
-
-
   #
   # Camera tracking
   #
@@ -413,6 +399,8 @@ update = (Δt, t) ->
 frame-driver.on-frame render.bind game-state
 frame-driver.on-tick update.bind game-state
 frame-driver.start!
+
+global.frame-driver = frame-driver
 
 # Init - assign
 main-canvas.install document.body

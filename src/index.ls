@@ -1,13 +1,14 @@
 
 # Require
 
-{ id, log, floor, abs, tau, sin, cos, div, v2, wrap } = require \std
+{ id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
+{ wrap, rgb, lerp } = require \std
 
 require \./global
 
 { FrameDriver } = require \./frame-driver
 { Blitter } = require \./blitter
-{ Input } = require \./input
+{ Input }   = require \./input
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -113,10 +114,13 @@ flipflopper = new FlipFlopper speed: 0.2
 
 # Misc functions
 
-pad-two = (str) -> if str.length < 2 then "0#str" else str
-hex = (decimal) -> pad-two (floor decimal).to-string 16
-rgb = ([r,g,b]) -> "##{hex r*255}#{hex g*255}#{hex b*255}"
-normalise-rotation = (θ) -> if θ < 0 then tau - (-θ % tau) else θ % tau
+normalise-rotation = (θ) ->
+  if θ < 0 then tau - (-θ % tau) else θ % tau
+
+lerp-color = (t, start, end) ->
+  [ (lerp t, start.0, end.0),
+    (lerp t, start.1, end.1),
+    (lerp t, start.2, end.2) ]
 
 rotation-to-color = (θ) ->
   θ = normalise-rotation θ
@@ -157,17 +161,6 @@ shoot = ->
     game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color]
   game-state.shoot-alternate = not game-state.shoot-alternate
 
-lerp = (t, a, b) ->
-  a + t * (b - a)
-
-ease = (t, a, b, λ) ->
-  a + (λ t) * (b - a)
-
-lerp-color = (t, start, end) ->
-  [ (lerp t, start.0, end.0),
-    (lerp t, start.1, end.1),
-    (lerp t, start.2, end.2) ]
-
 
 # Shared Gamestate
 
@@ -190,6 +183,22 @@ global.game-state =
   shoot-alternate: no
   target-pos: [0 500]
   player-bullets: []
+
+  input-state:
+    up:    off    # BUTTONS
+    down:  off
+    left:  off
+    right: off
+    fire:  off
+    pause: off
+
+    flip: 0       # TRIGGERS
+    flop: 0
+    flip-trigger-direction: TRIGGER_DIRECTION_STABLE
+    flop-trigger-direction: TRIGGER_DIRECTION_STABLE
+
+    mouse-x: 0    # POINTERS
+    mouse-y: 0
 
 
 # Debug state
@@ -245,33 +254,36 @@ render = (Δt, t) ->
   # Debug rendering
 
   let this = debug-canvas.ctx
+
     { width, height } = debug-canvas.canvas
+
     for d, x in rotation-history
       @fill-style = rgb colors[ rotation-to-color d ]
       @fill-rect x/rotation-history-limit * width, height - 10 - d * 10, 2, 2
 
+    @fill-style = \grey
+    @fill-rect 20, height/2, 20, 50
+    @fill-rect 50, height/2, 20, 50
+
+    @fill-style = \white
+    @fill-rect 20, height/2, 20, 50 * game-state.input-state.flip
+    @fill-rect 50, height/2, 20, 50 * game-state.input-state.flop
+
     if SHOW_EASING_TESTS
       @fill-style = \white
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.Linear(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Linear(i/width), 2, 2
       @fill-style = \red
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.Power2(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power2(i/width), 2, 2
       @fill-style = \orange
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.Power3(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power3(i/width), 2, 2
       @fill-style = \yellow
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.Power4(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power4(i/width), 2, 2
       @fill-style = \green
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.PowerOut2(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut2(i/width), 2, 2
       @fill-style = \cyan
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.PowerOut3(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut3(i/width), 2, 2
       @fill-style = \blue
-      for i from 0 to width by 5
-        @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
+      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
 
 
 #
@@ -280,11 +292,32 @@ render = (Δt, t) ->
 
 update = (Δt, t) ->
 
+  # Update timers
+
   Tween.update-all Δt
   flipflopper.update Δt
-
   Timer.update-and-carry @timers.auto-fire-timer, Δt
-  if @timers.auto-fire-timer.elapsed and input.state.fire then shoot!
+  input.update Δt  # Debug only - real trigger controller doesn't need timers
+
+
+  # Consume input events
+
+  while event = input.pending-events.shift!
+    [ type, value ] = event
+
+    switch type
+    | BUTTON_FIRE  => @input-state.fire  = value
+    | BUTTON_UP    => @input-state.up    = value
+    | BUTTON_DOWN  => @input-state.down  = value
+    | BUTTON_LEFT  => @input-state.left  = value
+    | BUTTON_RIGHT => @input-state.right = value
+    | TRIGGER_FLIP => @input-state.flip  = value
+    | TRIGGER_FLOP => @input-state.flop  = value
+
+
+  # Fire
+
+  if @timers.auto-fire-timer.elapsed and @input-state.fire then shoot!
 
   @player-bullets .= filter (bullet) ->
     bullet.pos.1 += bullet.vel.1 * Δt
@@ -294,16 +327,17 @@ update = (Δt, t) ->
   @player.pos.1 += auto-travel-speed * Δt
   @target-pos.1 += auto-travel-speed * Δt
 
+
   # Generate input velocity vector
 
   left-to-right-vel =
-    if input.state.left then -1
-    else if input.state.right then 1
+    if @input-state.left then -1
+    else if @input-state.right then 1
     else 0
 
   front-to-back-vel =
-    if input.state.down then -1
-    else if input.state.up then 1
+    if @input-state.down then -1
+    else if @input-state.up then 1
     else 0
 
   input-vel = [ left-to-right-vel, front-to-back-vel ]
@@ -321,33 +355,43 @@ update = (Δt, t) ->
 
 
   #
+  # Consume input event queue
+  #
+
+  while event = input.pending-events.shift!
+    log event
+
+
+  #
   # Flipflopping
   #
 
   # Consume inputs
-  if input.state.flip-on
-    #if not (@player.flipping or @player.flopping)
+  if @input-state.flip-on
     flipflopper.tween-to-stage -1
-      #rotation-tween := new Tween from: @player.rotation, to: @player.rotation + tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = yes
     @player.flopping = no
-    input.state.flip-on = off
+    @input-state.flip-on = off
 
-  if input.state.flop-on
-    #if not (@player.flopping or @player.flipping)
+  if @input-state.flop-on
     flipflopper.tween-to-stage +1
-      #rotation-tween := new Tween from: @player.rotation, to: @player.rotation - tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = no
     @player.flopping = yes
-    input.state.flop-on = off
+    @input-state.flop-on = off
 
-  if input.state.flop-off
-    input.state.flop-off = off
+  if @input-state.flop-off
+    @input-state.flop-off = off
 
   @player.rotation = flipflopper.θ
   @player.color = rotation-to-color @player.rotation
 
   push-rotation-history @player.rotation
+
+
+  if @input-state.pause
+    log \on
+    frame-driver.toggle!
+    @input-state.pause = off
 
 
   #
@@ -362,6 +406,8 @@ update = (Δt, t) ->
 
   if @player.pos.0 - @camera-pos.0 > camera-drift-limit
     @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
+
+
 
 # Init - default play-test-frame
 frame-driver.on-frame render.bind game-state

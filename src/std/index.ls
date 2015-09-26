@@ -66,6 +66,16 @@ export base64 = (buffer, output = "") ->
   for i from 0 to bytes.byteLength => output += String.fromCharCode bytes[i]
   window.btoa output
 
+export pad-two = (str) -> if str.length < 2 then "0#str" else str
+
+export hex = (decimal) -> pad-two (floor decimal).to-string 16
+
+export rgb = ([r,g,b]) -> "##{hex r*255}#{hex g*255}#{hex b*255}"
+
+export lerp = (t, a, b) -> a + t * (b - a)
+
+export ease = (t, a, b, λ) -> a + (λ t) * (b - a)
+
 
 # Physics processors
 

@@ -124,8 +124,8 @@ export class Blitter
     @ctx.global-alpha = 0.4
     for i from nx - lgs to nx + lgs by local-grid-fidelity
       @_line [i, cy - lgs], [i, cy + lgs]
-    for i from ny - lgs to ny + lgs by local-grid-fidelity
-      @_line [cx - lgs, i], [cx + lgs, i]
+    for i from ny - lgs til ny + lgs by local-grid-fidelity
+      @_line [cx - lgs, i + local-grid-fidelity], [cx + lgs, i + local-grid-fidelity]
     @ctx.close-path!
     @ctx.stroke!
 

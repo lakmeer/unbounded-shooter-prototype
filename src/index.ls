@@ -20,7 +20,7 @@ class Tween
   all-tweens = []
 
   ({ @from = 0, @to = 1, @in = 1, @with = Ease.Linear }) ->
-    log 'new Tween:', @from, @to
+    # log 'new Tween:', @from, @to
     @time = 0
     @range = @to - @from
     @elapsed = no
@@ -37,6 +37,10 @@ class Tween
   @update-all = (Δt) ->
     all-tweens := all-tweens.filter (.update Δt)
 
+  @Null =
+    elapsed: no
+    value: 0
+
 
 class Canvas
 
@@ -52,6 +56,33 @@ class Canvas
   install: (host) ->
     host.append-child @canvas
 
+
+class FlipFlopper
+
+  stage-step = tau/6
+  stage-to-rotation = (* stage-step)
+  normalise-stage   = (s) -> if s < 0 then 6 - (-s % 6) else s % 6
+
+  ({ @speed=1 }={}) ->
+    @stage = 0
+    @tween = Tween.Null
+    @θ = 0
+
+  tween-to-stage: (d) ->
+    @stage += d
+    @tween = new Tween do
+      from: @θ,
+      to: (stage-to-rotation @stage),
+      in: @speed,
+      with: Ease.PowerOut4
+
+  static-to-stage: (d, t) ->
+
+  update: (Δt) ->
+    @θ = @tween.value
+    if @tween.elapsed
+      @stage = normalise-stage @stage
+      @θ = normalise-rotation @θ
 
 
 # Debug
@@ -75,6 +106,8 @@ colors =
   [0 1 0] [0 1 1] [0 0 1]
   [0 0 1] [1 0 1] [1 0 0]
 
+flipflopper = new FlipFlopper speed: 0.2
+
 
 # Misc functions
 
@@ -84,6 +117,7 @@ rgb = ([r,g,b]) -> "##{hex r*255}#{hex g*255}#{hex b*255}"
 normalise-rotation = (θ) -> if θ < 0 then tau - (-θ % tau) else θ % tau
 
 rotation-to-color = (θ) ->
+  θ = normalise-rotation θ
   if 0 < θ < tau
     floor (θ/tau) * colors.length
   else
@@ -143,7 +177,7 @@ global.game-state =
     pos: [0 0]
     vel: [0 0]
     flipping: no
-    flopping: yes
+    flopping: no
     color: 0
     rotation: 0
 
@@ -191,8 +225,6 @@ if SHOW_TWEEN_BOXES
   tween3 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.Linear
   tween4 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.PowerOut2
   tween5 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.PowerOut3
-
-rotation-tween = elapsed: yes
 
 
 #
@@ -272,6 +304,7 @@ render = (Δt, t) ->
 update = (Δt, t) ->
 
   Tween.update-all Δt
+  flipflopper.update Δt
 
   Timer.update-and-carry @timers.auto-fire-timer, Δt
   if @timers.auto-fire-timer.elapsed and @input-state.fire then shoot!
@@ -318,37 +351,34 @@ update = (Δt, t) ->
   #Timer.update-and-stop @timers.flip-flop-timer, Δt
 
   # Check if in-progress flipflopping has ended
-  if rotation-tween.elapsed
-    @player.flipping = no
-    @player.flopping = no
-  else
-    @player.rotation = normalise-rotation rotation-tween.value
-
-  if @player.flipping then void
-  if @player.flopping then void
+  #if rotation-tween.elapsed
+  #  @player.flipping = no
+  #  @player.flopping = no
+  #else
+  #  @player.rotation = normalise-rotation rotation-tween.value
 
   # Consume inputs
   if @input-state.flip
-    if not @player.flipping
-      rotation-tween := new Tween from: @player.rotation, to: @player.rotation + tau/3, in: flip-flop-time, with: Ease.PowerOut3
+    #if not (@player.flipping or @player.flopping)
+    flipflopper.tween-to-stage -1
+      #rotation-tween := new Tween from: @player.rotation, to: @player.rotation + tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = yes
     @player.flopping = no
     @input-state.flip = no
 
   if @input-state.flop
-    if not @player.flopping
-      rotation-tween := new Tween from: @player.rotation, to: @player.rotation - tau/3, in: flip-flop-time, with: Ease.PowerOut3
+    #if not (@player.flopping or @player.flipping)
+    flipflopper.tween-to-stage +1
+      #rotation-tween := new Tween from: @player.rotation, to: @player.rotation - tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = no
     @player.flopping = yes
     @input-state.flop = no
 
-
-  #
-  # Auto rotate
-  #
-
+  @player.rotation = flipflopper.θ
   @player.color = rotation-to-color @player.rotation
+
   push-rotation-history @player.rotation
+
 
   #
   # Camera tracking

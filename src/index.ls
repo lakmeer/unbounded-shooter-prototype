@@ -1,7 +1,7 @@
 
 # Require
 
-{ id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
+{ id, log, floor, abs, tau, sin, cos, div, v2, wrap } = require \std
 
 pad-two = (str) -> if str.length < 2 then "0#str" else str
 hex = (decimal) -> pad-two (floor decimal).to-string 16
@@ -18,85 +18,34 @@ require \./global
 { FrameDriver } = require \./frame-driver
 { Blitter } = require \./blitter
 
+Ease   = require \./ease
 Timer  = require \./timer
 Bullet = require \./bullet
 
 
+# Debug
+
+SHOW_EASING_TESTS = no
+SHOW_TWEEN_BOXES = no
+
+
 # Config
 
-auto-travel-speed    = 100
-max-speed            = 100
-auto-fire-speed      = 0.08
-dual-fire-separation = 35
-camera-drift-limit   = 200   # TODO: Make camera seek center gradually
-flip-flop-time       = 0.2
-
-
-# Shared Gamestate
-
-global.game-state =
-  camera-zoom: 1
-  camera-pos: [0 0]
-
-  player:
-    pos: [0 0]
-    vel: [0 0]
-    flipping: no
-    flopping: yes
-    color: 0
-    rotation: 0
-
-  input-state:
-    up:    off
-    down:  off
-    left:  off
-    right: off
-    flip:  off
-    flop:  on
-    fire:  off
-    mouse-x: 0
-    mouse-y: 0
-
-  timers:
-    auto-fire-timer: Timer.create auto-fire-speed
-    flip-flop-timer: Timer.create flip-flop-time, disabled: true
-
-  shoot-alternate: no
-  target-pos: [0 500]
-  player-bullets: []
+auto-travel-speed      = 100
+max-speed              = 100
+auto-fire-speed        = 0.08
+dual-fire-separation   = 35
+camera-drift-limit     = 200   # TODO: Make camera seek center gradually
+flip-flop-time         = 0.2
+rotation-history-limit = 200
 
 colors =
   [1 0 0] [1 1 0] [0 1 0]
   [0 1 0] [0 1 1] [0 0 1]
   [0 0 1] [1 0 1] [1 0 0]
 
-rotation-history = []
-rotation-history-limit = 200
 
-push-rotation-history = (n) ->
-  rotation-history.push n
-  if rotation-history.length >= rotation-history-limit
-    rotation-history.shift!
-
-
-# Init
-
-class Canvas
-  ->
-    @canvas = document.create-element \canvas
-    @ctx = @canvas.get-context \2d
-    @canvas.height = window.inner-height
-    @canvas.width = window.inner-height / 1.5
-
-  clear: ->
-    @ctx.clear-rect 0, 0, @canvas.width, @canvas.height
-
-  install: (host) ->
-    host.append-child @canvas
-
-main-canvas  = new Blitter
-frame-driver = new FrameDriver
-debug-canvas = new Canvas
+# Misc functions
 
 color-barrel =
   draw: (cnv, pos, θ, r = 75, o = tau * 9/12, m = colors.length) ->
@@ -132,7 +81,109 @@ lerp-color = (t, start, end) ->
     (lerp t, start.1, end.1),
     (lerp t, start.2, end.2) ]
 
-{ wrap } = require \std
+
+# Shared Gamestate
+
+global.game-state =
+  camera-zoom: 1
+  camera-pos: [0 0]
+
+  player:
+    pos: [0 0]
+    vel: [0 0]
+    flipping: no
+    flopping: yes
+    color: 0
+    rotation: 0
+
+  input-state:
+    up:    off
+    down:  off
+    left:  off
+    right: off
+    flip:  off
+    flop:  on
+    fire:  off
+    mouse-x: 0
+    mouse-y: 0
+
+  timers:
+    auto-fire-timer: Timer.create auto-fire-speed
+    flip-flop-timer: Timer.create flip-flop-time, disabled: true
+
+  shoot-alternate: no
+  target-pos: [0 500]
+  player-bullets: []
+
+
+# Debug state
+
+rotation-history = []
+
+push-rotation-history = (n) ->
+  rotation-history.push n
+  if rotation-history.length >= rotation-history-limit
+    rotation-history.shift!
+
+
+# Helper classes
+
+class Tween
+
+  all-tweens = []
+
+  ({ @from = 0, @to = 1, @in = 1, @with = Ease.Linear }) ->
+    @time = 0
+    @range = @to - @from
+    @elapsed = no
+    all-tweens.push this
+
+  update: (Δt) ->
+    @time += Δt
+    if @time >= @in
+      @time = @in
+      @elapsed = yes
+    @value = @from + @range * @with @time/@in
+    return not @elapsed
+
+  @update-all = (Δt) ->
+    all-tweens := all-tweens.filter (.update Δt)
+
+
+class Canvas
+
+  ->
+    @canvas = document.create-element \canvas
+    @ctx = @canvas.get-context \2d
+    @canvas.height = window.inner-height
+    @canvas.width = window.inner-height / 1.5
+
+  clear: ->
+    @ctx.clear-rect 0, 0, @canvas.width, @canvas.height
+
+  install: (host) ->
+    host.append-child @canvas
+
+
+#
+# INIT
+#
+
+main-canvas  = new Blitter
+frame-driver = new FrameDriver
+debug-canvas = new Canvas
+
+if SHOW_TWEEN_BOXES
+  tween1 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.Power3
+  tween2 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.Power2
+  tween3 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.Linear
+  tween4 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.PowerOut2
+  tween5 = new Tween from: 0, to: debug-canvas.canvas.width - 20, in: 1, with: Ease.PowerOut3
+
+
+#
+# RENDER
+#
 
 render = (Δt, t) ->
   p = Timer.get-progress @timers.flip-flop-timer
@@ -161,13 +212,52 @@ render = (Δt, t) ->
     { width, height } = debug-canvas.canvas
     for d, x in rotation-history
       @fill-style = rgb colors[ rotation-to-color d ]
-      @fill-rect x/rotation-history-limit * width, (height - 100) - d * 10, 2, 2
+      @fill-rect x/rotation-history-limit * width, height - 10 - d * 10, 2, 2
+
+    if SHOW_EASING_TESTS
+      @fill-style = \white
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.Linear(i/width), 2, 2
+      @fill-style = \red
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.Power2(i/width), 2, 2
+      @fill-style = \orange
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.Power3(i/width), 2, 2
+      @fill-style = \yellow
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.Power4(i/width), 2, 2
+      @fill-style = \green
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.PowerOut2(i/width), 2, 2
+      @fill-style = \cyan
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.PowerOut3(i/width), 2, 2
+      @fill-style = \blue
+      for i from 0 to width by 5
+        @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
+
+    if SHOW_TWEEN_BOXES
+      @fill-style = \purple
+      @fill-rect tween1.value, height - 150, 20, 20
+      @fill-rect tween2.value, height - 170, 20, 20
+      @fill-rect tween3.value, height - 190, 20, 20
+      @fill-rect tween4.value, height - 210, 20, 20
+      @fill-rect tween5.value, height - 230, 20, 20
+
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
 
 
+#
+# UPDATE
+#
+
 update = (Δt, t) ->
+
+  Tween.update-all Δt
+
   Timer.update-and-carry @timers.auto-fire-timer, Δt
   if @timers.auto-fire-timer.elapsed and @input-state.fire then shoot!
 

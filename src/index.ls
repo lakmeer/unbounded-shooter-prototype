@@ -85,6 +85,83 @@ class FlipFlopper
       @θ = normalise-rotation @θ
 
 
+#
+# Input
+#
+
+class Input
+
+  ENTER  = 13
+  SPACE  = 32
+  ESCAPE = 27
+  KEY_Z  = 90
+  KEY_X  = 88
+  KEY_C  = 67
+  LEFT   = 37
+  RIGHT  = 39
+  UP     = 38
+  DOWN   = 40
+
+  ->
+
+    @state =
+      up:    off
+      down:  off
+      left:  off
+      right: off
+
+      fire:  off
+
+      flip-on: off
+      flop-on: off
+      flip-off: off
+      flop-off: off
+
+      mouse-x: 0
+      mouse-y: 0
+
+    document.add-event-listener \mousemove, ({ pageX, pageY }) ~>
+      input.state.mouse-x = pageX / window.inner-width
+      input.state.mouse-y = pageY / window.inner-height
+
+    document.add-event-listener \keydown, ({ which }:event) ~>
+      if event.shift-key then log which
+      let this = @state
+        switch which
+        | ESCAPE => frame-driver.toggle!
+        | ENTER  => void
+        | SPACE  => void
+        | KEY_Z  => @flip-on = on
+        | KEY_C  => @flop-on = on
+        | KEY_X  => @fire  = on
+        | UP     => @up    = on
+        | LEFT   => @left  = on
+        | DOWN   => @down  = on
+        | RIGHT  => @right = on
+        | _  => return event
+        event.prevent-default!
+        return false
+
+    document.add-event-listener \keyup, ({ which }:event) ~>
+      if event.shift-key then log which
+      let this = @state
+        switch which
+        | SPACE  => void
+        | KEY_Z  => @flip-on = off; @flip-off = on
+        | KEY_C  => @flop-on = off; @flop-off = on
+        | KEY_X  => @fire  = off
+        | UP     => @up    = off
+        | LEFT   => @left  = off
+        | DOWN   => @down  = off
+        | RIGHT  => @right = off
+        | _  => return event
+        event.prevent-default!
+        return false
+
+input = new Input
+
+
+
 # Debug
 
 SHOW_EASING_TESTS = no
@@ -180,17 +257,6 @@ global.game-state =
     flopping: no
     color: 0
     rotation: 0
-
-  input-state:
-    up:    off
-    down:  off
-    left:  off
-    right: off
-    flip:  off
-    flop:  off
-    fire:  off
-    mouse-x: 0
-    mouse-y: 0
 
   timers:
     auto-fire-timer: Timer.create auto-fire-speed
@@ -307,7 +373,7 @@ update = (Δt, t) ->
   flipflopper.update Δt
 
   Timer.update-and-carry @timers.auto-fire-timer, Δt
-  if @timers.auto-fire-timer.elapsed and @input-state.fire then shoot!
+  if @timers.auto-fire-timer.elapsed and input.state.fire then shoot!
 
   @player-bullets .= filter (bullet) ->
     bullet.pos.1 += bullet.vel.1 * Δt
@@ -320,13 +386,13 @@ update = (Δt, t) ->
   # Generate input velocity vector
 
   left-to-right-vel =
-    if @input-state.left then -1
-    else if @input-state.right then 1
+    if input.state.left then -1
+    else if input.state.right then 1
     else 0
 
   front-to-back-vel =
-    if @input-state.down then -1
-    else if @input-state.up then 1
+    if input.state.down then -1
+    else if input.state.up then 1
     else 0
 
   input-vel = [ left-to-right-vel, front-to-back-vel ]
@@ -347,32 +413,25 @@ update = (Δt, t) ->
   # Flipflopping
   #
 
-  # TODO: Work out if timer update feels better before or after
-  #Timer.update-and-stop @timers.flip-flop-timer, Δt
-
-  # Check if in-progress flipflopping has ended
-  #if rotation-tween.elapsed
-  #  @player.flipping = no
-  #  @player.flopping = no
-  #else
-  #  @player.rotation = normalise-rotation rotation-tween.value
-
   # Consume inputs
-  if @input-state.flip
+  if input.state.flip-on
     #if not (@player.flipping or @player.flopping)
     flipflopper.tween-to-stage -1
       #rotation-tween := new Tween from: @player.rotation, to: @player.rotation + tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = yes
     @player.flopping = no
-    @input-state.flip = no
+    input.state.flip-on = off
 
-  if @input-state.flop
+  if input.state.flop-on
     #if not (@player.flopping or @player.flipping)
     flipflopper.tween-to-stage +1
       #rotation-tween := new Tween from: @player.rotation, to: @player.rotation - tau/3, in: flip-flop-time, with: Ease.PowerOut3
     @player.flipping = no
     @player.flopping = yes
-    @input-state.flop = no
+    input.state.flop-on = off
+
+  if input.state.flop-off
+    input.state.flop-off = off
 
   @player.rotation = flipflopper.θ
   @player.color = rotation-to-color @player.rotation
@@ -392,61 +451,6 @@ update = (Δt, t) ->
 
   if @player.pos.0 - @camera-pos.0 > camera-drift-limit
     @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
-
-
-#
-# Input
-#
-
-ENTER  = 13
-SPACE  = 32
-ESCAPE = 27
-KEY_Z  = 90
-KEY_X  = 88
-KEY_C  = 67
-LEFT   = 37
-RIGHT  = 39
-UP     = 38
-DOWN   = 40
-
-document.add-event-listener \mousemove, ({ pageX, pageY }) ->
-  game-state.input-state.mouse-x = pageX / window.inner-width
-  game-state.input-state.mouse-y = pageY / window.inner-height
-
-document.add-event-listener \keydown, ({ which }:event) ->
-  if event.shift-key then log which
-  let this = game-state.input-state
-    switch which
-    | ESCAPE => frame-driver.toggle!
-    | ENTER  => void
-    | SPACE  => void
-    | KEY_Z  => @flip  = on
-    | KEY_X  => @fire  = on
-    | KEY_C  => @flop  = on
-    | UP     => @up    = on
-    | LEFT   => @left  = on
-    | DOWN   => @down  = on
-    | RIGHT  => @right = on
-    | _  => return event
-    event.prevent-default!
-    return false
-
-document.add-event-listener \keyup, ({ which }:event) ->
-  if event.shift-key then log which
-  let this = game-state.input-state
-    switch which
-    | SPACE  => void
-    | KEY_Z  => @flip  = off
-    | KEY_X  => @fire  = off
-    | KEY_C  => @flop  = off
-    | UP     => @up    = off
-    | LEFT   => @left  = off
-    | DOWN   => @down  = off
-    | RIGHT  => @right = off
-    | _  => return event
-    event.prevent-default!
-    return false
-
 
 # Init - default play-test-frame
 frame-driver.on-frame render.bind game-state

@@ -1,5 +1,7 @@
 
-{ log } = require \std
+# Require
+
+{ id, log, tau } = require \std
 
 
 #
@@ -44,6 +46,17 @@ export class Blitter
 
   translate-size: ([w, h]) ->
     [ w * @wf, h * @hf ]
+
+  circle: (pos, radius, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
+    [x, y] = @translate-pos pos
+    [ r ]  = @translate-size [ radius ]  # TODO: This, but better
+    @ctx.global-composite-operation = mode-to-operation mode
+    @ctx.global-alpha = alpha
+    @ctx.fill-style = color
+    @ctx.begin-path!
+    @ctx.arc x, y, r, 0, tau
+    @ctx.close-path!
+    @ctx.fill!
 
   rect: (pos, size, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
     [x, y] = @translate-pos pos

@@ -49,5 +49,3 @@ export class FlipFlopper
       else
         @θ = lerp 0.5 + (1 - p)/2, current-rotation, target-rotation
 
-  update: (Δt) ->
-

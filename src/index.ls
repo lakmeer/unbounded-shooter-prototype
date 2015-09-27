@@ -178,11 +178,14 @@ render = (Δt, t) ->
     else
       colors[@player.color]
 
+  sigil-pos = @player.pos `v2.add` [ 0 -8 ]
+
   main-canvas.clear!
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
-  main-canvas.rect  @target-pos, [90 90], color: \blue
-  main-canvas.uptri @player.pos, [50 50], color: player-color
+  main-canvas.rect   @target-pos, [90 90], color: \blue
+  main-canvas.uptri  @player.pos, [50 50], color: \#ccc
+  main-canvas.circle sigil-pos, 10, color: player-color
 
   debug-canvas.clear!
   color-barrel.draw debug-canvas, [100 100], @player.rotation
@@ -237,9 +240,8 @@ update = (Δt, t) ->
   # Update timers
 
   Tween.update-all Δt
-  flipflopper.update Δt
   Timer.update-and-carry @timers.auto-fire-timer, Δt
-  input.update Δt  # Debug only - real trigger controller doesn't need timers
+  input.update Δt  # Debug only - real input controller doesn't need timers
 
 
   # Consume input events
@@ -248,7 +250,14 @@ update = (Δt, t) ->
     [ type, value ] = event
 
     switch type
-    | BUTTON_FIRE  => @input-state.fire  = value
+    | BUTTON_FIRE  =>
+      if @input-state.fire isnt value
+        @input-state.fire = value
+
+        if value is on
+          Timer.reset @timers.auto-fire-timer
+          shoot!
+
     | BUTTON_UP    => @input-state.up    = value
     | BUTTON_DOWN  => @input-state.down  = value
     | BUTTON_LEFT  => @input-state.left  = value

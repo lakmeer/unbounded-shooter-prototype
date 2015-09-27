@@ -187,11 +187,6 @@ render = (Δt, t) ->
   main-canvas.uptri  @player.pos, [50 50], color: \#ccc
   main-canvas.circle sigil-pos, 10, color: player-color
 
-  debug-canvas.clear!
-  color-barrel.draw debug-canvas, [100 100], @player.rotation
-  debug-canvas.ctx.fill-style = rgb colors[@player.color]
-  debug-canvas.ctx.fill-rect 98, 10, 4, 15
-
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
 
@@ -201,6 +196,11 @@ render = (Δt, t) ->
   let this = debug-canvas.ctx
 
     { width, height } = debug-canvas.canvas
+
+    debug-canvas.clear!
+    color-barrel.draw debug-canvas, [width/2, 100], game-state.player.rotation
+    @fill-style = rgb colors[game-state.player.color]
+    @fill-rect width/2 - 2, 10, 4, 15
 
     for d, x in rotation-history
       @fill-style = rgb colors[ rotation-to-color d ]
@@ -229,6 +229,14 @@ render = (Δt, t) ->
       for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut3(i/width), 2, 2
       @fill-style = \blue
       for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
+
+    box = (i, s) ~>
+      @fill-style = if s is 0 then \lightgrey else if s < 0 then \red else \#2c2
+      @fill-rect width - 50, 20 + i * 40, 30, 30
+
+    box 0, flipflopper.cock-direction
+    box 1, flipflopper.ignored-trigger
+    box 2, flipflopper.reverse-trigger
 
 
 #

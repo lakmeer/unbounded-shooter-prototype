@@ -7,8 +7,10 @@
 require \./global
 
 { FrameDriver } = require \./frame-driver
-{ Blitter } = require \./blitter
-{ Input }   = require \./input
+{ FlipFlopper } = require \./flipflopper
+{ Blitter }     = require \./blitter
+{ Input }       = require \./input
+{ Tween }       = require \./tween
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -16,33 +18,6 @@ Bullet = require \./bullet
 
 
 # Helper classes
-
-class Tween
-
-  all-tweens = []
-
-  ({ @from = 0, @to = 1, @in = 1, @with = Ease.Linear }) ->
-    # log 'new Tween:', @from, @to
-    @time = 0
-    @range = @to - @from
-    @elapsed = no
-    all-tweens.push this
-
-  update: (Δt) ->
-    @time += Δt
-    if @time >= @in
-      @time = @in
-      @elapsed = yes
-    @value = @from + @range * @with @time/@in
-    return not @elapsed
-
-  @update-all = (Δt) ->
-    all-tweens := all-tweens.filter (.update Δt)
-
-  @Null =
-    elapsed: no
-    value: 0
-
 
 class Canvas
 
@@ -57,34 +32,6 @@ class Canvas
 
   install: (host) ->
     host.append-child @canvas
-
-
-class FlipFlopper
-
-  stage-step = tau/6
-  stage-to-rotation = (* stage-step)
-  normalise-stage   = (s) -> if s < 0 then 6 - (-s % 6) else s % 6
-
-  ({ @speed=1 }={}) ->
-    @stage = 0
-    @tween = Tween.Null
-    @θ = 0
-
-  tween-to-stage: (d) ->
-    @stage += d
-    @tween = new Tween do
-      from: @θ,
-      to: (stage-to-rotation @stage),
-      in: @speed,
-      with: Ease.PowerOut4
-
-  static-to-stage: (d, t) ->
-
-  update: (Δt) ->
-    @θ = @tween.value
-    if @tween.elapsed
-      @stage = normalise-stage @stage
-      @θ = normalise-rotation @θ
 
 
 
@@ -114,16 +61,12 @@ flipflopper = new FlipFlopper speed: 0.2
 
 # Misc functions
 
-normalise-rotation = (θ) ->
-  if θ < 0 then tau - (-θ % tau) else θ % tau
-
 lerp-color = (t, start, end) ->
   [ (lerp t, start.0, end.0),
     (lerp t, start.1, end.1),
     (lerp t, start.2, end.2) ]
 
 rotation-to-color = (θ) ->
-  θ = normalise-rotation θ
   if 0 < θ < tau
     floor (θ/tau) * colors.length
   else
@@ -216,7 +159,6 @@ push-rotation-history = (n) ->
 #
 
 main-canvas  = new Blitter
-frame-driver = new FrameDriver
 debug-canvas = new Canvas
 input        = new Input
 
@@ -311,8 +253,24 @@ update = (Δt, t) ->
     | BUTTON_DOWN  => @input-state.down  = value
     | BUTTON_LEFT  => @input-state.left  = value
     | BUTTON_RIGHT => @input-state.right = value
-    | TRIGGER_FLIP => @input-state.flip  = value
-    | TRIGGER_FLOP => @input-state.flop  = value
+
+    | TRIGGER_FLIP =>
+      if @input-state.flip < value
+        flipflopper.static-to-stage -1, value
+
+      else if @input-state.flip > value
+        flipflopper.static-to-stage -1, value
+
+      @input-state.flip  = value
+
+    | TRIGGER_FLOP =>
+      if @input-state.flop < value
+        flipflopper.static-to-stage 1, value
+
+      else if @input-state.flop > value
+        flipflopper.static-to-stage 1, value
+
+      @input-state.flop  = value
 
 
   # Fire
@@ -344,12 +302,15 @@ update = (Δt, t) ->
 
 
   # Normalise input velocity or circle (fwd) or diamond (back)
+
   if input-vel.1 >= 0
     player-vel = (v2.norm input-vel) `v2.scale` max-speed
   else
     player-vel = (diamond input-vel) `v2.scale` max-speed
 
-  # Apply input velocity
+
+  # Apply input velocity to player
+
   @player.pos.0 += player-vel.0 * Δt
   @player.pos.1 += player-vel.1 * Δt
 
@@ -374,7 +335,7 @@ update = (Δt, t) ->
   if @input-state.flop-off
     @input-state.flop-off = off
 
-  @player.rotation = flipflopper.θ
+  @player.rotation = flipflopper.get-rotation!
   @player.color = rotation-to-color @player.rotation
 
   push-rotation-history @player.rotation
@@ -395,14 +356,18 @@ update = (Δt, t) ->
 
 
 
-# Init - default play-test-frame
+#
+# INIT
+#
+
+global.frame-driver = new FrameDriver
 frame-driver.on-frame render.bind game-state
 frame-driver.on-tick update.bind game-state
 frame-driver.start!
 
-global.frame-driver = frame-driver
 
 # Init - assign
-main-canvas.install document.body
+
+main-canvas.install  document.body
 debug-canvas.install document.body
 

@@ -36,7 +36,7 @@ export class Input
   global.TRIGGER_FLOP = Symbol \trigger-flop
   global.MOUSE_MOVE   = Symbol \mouse-move
 
-  simulated-travel-time = 0.05
+  simulated-travel-time = 0.05 * 10
 
   ->
     @pending-events = [ ]

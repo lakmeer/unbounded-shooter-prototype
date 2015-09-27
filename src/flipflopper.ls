@@ -16,10 +16,9 @@ export class FlipFlopper
   MODE_UNCOCK = Symbol \uncock
 
   stage-step = tau/3
-
   stage-to-rotation = (* stage-step)
 
-  normalise-stage   = (s) ->
+  normalise-stage = (s) ->
     if s < 0 then 3 - (-s % 3) else s % 3
 
   normalise-rotation = (θ) ->

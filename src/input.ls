@@ -70,24 +70,22 @@ export class Input
         trigger.target = simulated-travel-time
         trigger.dir = TRIGGER_DIRECTION_STABLE
 
-      #log trigger.type, trigger.dir
       trigger.value = p
 
   push-event: (type, arg) ->
     @pending-events.push [ type, arg ]
 
   simulate-trigger-motion: (side, dir) ->
-    trigger = @sim-triggers[side]
+    trigger   = @sim-triggers[side]
+    direction = if dir then TRIGGER_DIR_PRESS else TRIGGER_DIR_RELEASE
 
-    if (dir is on  and trigger.dir is TRIGGER_DIR_PRESS) or
-       (dir is off and trigger.dir is TRIGGER_DIR_RELEASE) then return
+    if (direction isnt trigger.dir)
+      if trigger.timer.active
+        trigger.timer.current = trigger.timer.target - trigger.timer.current
+      else
+        Timer.reset trigger.timer
 
-    if trigger.timer.active
-      trigger.timer.current = trigger.timer.target - trigger.timer.current
-    else
-      Timer.reset trigger.timer
-
-    trigger.dir = if dir then TRIGGER_DIR_PRESS else TRIGGER_DIR_RELEASE
+      trigger.dir = direction
 
   handle-key: (dir) -> ({ which }:event) ~>
     if event.shift-key then log which

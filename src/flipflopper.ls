@@ -29,6 +29,8 @@ export class FlipFlopper
     @stage = 0
     @mode  = MODE_COCK
 
+  rotation:~ -> normalise-rotation @θ
+
   static-to-stage: (d, p) ->
     target-rotation = stage-to-rotation @stage + d
     current-rotation = stage-to-rotation @stage
@@ -37,14 +39,13 @@ export class FlipFlopper
     | MODE_COCK =>
       if p is 1
         @mode = MODE_UNCOCK
-      else
-        @θ = lerp p/2, current-rotation, target-rotation
+      @θ = lerp p/2, current-rotation, target-rotation
 
     | MODE_UNCOCK =>
       if p is 0
         @stage = normalise-stage @stage + d
-        @mode = MODE_COCK
-        @θ = target-rotation
+        @θ     = stage-to-rotation @stage
+        @mode  = MODE_COCK
       else
         @θ = lerp 0.5 + (1 - p)/2, current-rotation, target-rotation
 

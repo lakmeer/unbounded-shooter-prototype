@@ -27,50 +27,27 @@ export class FlipFlopper
 
   ({ @speed=1 }={}) ->
     @θ     = 0
-    @Δθ    = 0
     @stage = 0
     @mode  = MODE_COCK
-    #@tween = Tween.Null
-
-  get-rotation: ->
-    @θ + @Δθ
-
-  #tween-to-stage: (d) ->
-    #@stage += d
-    #@tween = new Tween do
-      #from: @θ,
-        #to: (stage-to-rotation @stage),
-        #in: @speed,
-        #with: Ease.PowerOut4
 
   static-to-stage: (d, p) ->
     target-rotation = stage-to-rotation @stage + d
+    current-rotation = stage-to-rotation @stage
 
-    if @mode is MODE_COCK
+    switch @mode
+    | MODE_COCK =>
       if p is 1
-        @stage = normalise-stage @stage + d
-        @θ = normalise-rotation target-rotation
-        @Δθ = 0
-        log \STAGE @stage
         @mode = MODE_UNCOCK
       else
-        @Δθ = lerp p, @θ, target-rotation
-    else
+        @θ = lerp p/2, current-rotation, target-rotation
+
+    | MODE_UNCOCK =>
       if p is 0
         @stage = normalise-stage @stage + d
-        @θ = normalise-rotation target-rotation
-        @Δθ = 0
-        log \STAGE @stage
         @mode = MODE_COCK
+        @θ = target-rotation
       else
-        @Δθ = lerp (1 - p), @θ, target-rotation
-
+        @θ = lerp 0.5 + (1 - p)/2, current-rotation, target-rotation
 
   update: (Δt) ->
-    #if @tween.active
-    #@θ = @tween.value
-
-    #if @tween.elapsed
-    #@stage = normalise-stage @stage
-    #@θ = normalise-rotation @θ
 

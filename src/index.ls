@@ -335,7 +335,7 @@ update = (Δt, t) ->
   if @input-state.flop-off
     @input-state.flop-off = off
 
-  @player.rotation = flipflopper.get-rotation!
+  @player.rotation = flipflopper.θ
   @player.color = rotation-to-color @player.rotation
 
   push-rotation-history @player.rotation

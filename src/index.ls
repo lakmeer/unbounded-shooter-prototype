@@ -16,6 +16,9 @@ Ease   = require \./ease
 Timer  = require \./timer
 Bullet = require \./bullet
 
+FIRE_MODE_ALTERNATE = Symbol \alternate
+FIRE_MODE_BLEND     = Symbol \blend
+
 
 # Helper classes
 
@@ -45,7 +48,7 @@ SHOW_TWEEN_BOXES  = no
 
 auto-travel-speed      = 100
 max-speed              = 500
-auto-fire-speed        = 0.08
+auto-fire-speed        = 0.1
 dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
 flip-flop-time         = 0.2
@@ -95,14 +98,23 @@ color-barrel =
       @close-path!
       @stroke!
 
+
 shoot = ->
-  if game-state.shoot-alternate
-    left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-    game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color]
+  if game-state.fire-mode is FIRE_MODE_BLEND
+    left  = game-state.player.pos `v2.add` [dual-fire-separation/-4 150]
+    right = game-state.player.pos `v2.add` [dual-fire-separation/+4 150]
+    game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color - 1]
+    game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color + 1]
+
   else
-    right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-    game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color]
-  game-state.shoot-alternate = not game-state.shoot-alternate
+    if game-state.shoot-alternate
+      left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
+      game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color]
+    else
+      right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
+      game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color]
+    game-state.shoot-alternate = not game-state.shoot-alternate
+
 
 
 # Shared Gamestate
@@ -123,6 +135,7 @@ global.game-state =
     auto-fire-timer: Timer.create auto-fire-speed
     flip-flop-timer: Timer.create flip-flop-time, disabled: true
 
+  fire-mode: FIRE_MODE_ALTERNATE
   shoot-alternate: no
   target-pos: [0 500]
   player-bullets: []
@@ -262,8 +275,10 @@ update = (Δt, t) ->
         @input-state.fire = value
 
         if value is on
-          Timer.reset @timers.auto-fire-timer
           shoot!
+
+          if @fire-mode is FIRE_MODE_ALTERNATE
+            Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
 
     | BUTTON_UP    => @input-state.up    = value
     | BUTTON_DOWN  => @input-state.down  = value
@@ -289,14 +304,7 @@ update = (Δt, t) ->
       @input-state.flop  = value
 
 
-  # Fire
-
-  if @timers.auto-fire-timer.elapsed and @input-state.fire then shoot!
-
-  @player-bullets .= filter (bullet) ->
-    bullet.pos.1 += bullet.vel.1 * Δt
-    bullet.life -= bullet.Δlife * Δt
-    bullet.life > 0
+  # Travel forward inexorably
 
   @player.pos.1 += auto-travel-speed * Δt
   @target-pos.1 += auto-travel-speed * Δt
@@ -355,6 +363,33 @@ update = (Δt, t) ->
   @player.color = rotation-to-color @player.rotation
 
   push-rotation-history @player.rotation
+
+
+  # Fire
+
+  if game-state.player.color % 3 is 1
+    new-fire-mode = FIRE_MODE_BLEND
+    fire-timer-factor = 2
+  else
+    new-fire-mode = FIRE_MODE_ALTERNATE
+    fire-timer-factor = 1
+
+  @timers.auto-fire-timer.target = auto-fire-speed * fire-timer-factor
+
+  if new-fire-mode is FIRE_MODE_ALTERNATE
+    if @timers.auto-fire-timer.elapsed and @input-state.fire
+      shoot!
+
+  if @fire-mode isnt new-fire-mode
+    if new-fire-mode is FIRE_MODE_ALTERNATE
+      Timer.reset @timers.auto-fire-timer
+
+  @fire-mode = new-fire-mode
+
+  @player-bullets .= filter (bullet) ->
+    bullet.pos.1 += bullet.vel.1 * Δt
+    bullet.life -= bullet.Δlife * Δt
+    bullet.life > 0
 
 
   #

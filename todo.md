@@ -49,15 +49,15 @@
 
 ## TODO
 
+- Fine tune firing rules
+  - Restrict blended fire to max fire rate
 - Real game units
 - Player physics
-- Laser shooting
-- Color switching mechanism
-- Easing functions
 - Basic world layout
-- Algorithm that creates sector angles from player max X speed
+- Algorithm that creates sector angles from player max X speed?
 - World binning
 - Sector binning
+- Turn whole world 45° to make binning easier?
 - Basic collision algorithm
 - Spawn some enemies in each sector
 - Sector debug overview

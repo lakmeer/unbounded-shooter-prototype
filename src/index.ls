@@ -276,7 +276,6 @@ update = (Δt, t) ->
 
         if value is on
           shoot!
-
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
 
@@ -288,19 +287,15 @@ update = (Δt, t) ->
     | TRIGGER_FLIP =>
       if @input-state.flip < value
         flipflopper.static-to-stage -1, value
-
       else if @input-state.flip > value
         flipflopper.static-to-stage -1, value
-
       @input-state.flip  = value
 
     | TRIGGER_FLOP =>
       if @input-state.flop < value
         flipflopper.static-to-stage 1, value
-
       else if @input-state.flop > value
         flipflopper.static-to-stage 1, value
-
       @input-state.flop  = value
 
 
@@ -342,22 +337,6 @@ update = (Δt, t) ->
   #
   # Flipflopping
   #
-
-  # Consume inputs
-  if @input-state.flip-on
-    flipflopper.tween-to-stage -1
-    @player.flipping = yes
-    @player.flopping = no
-    @input-state.flip-on = off
-
-  if @input-state.flop-on
-    flipflopper.tween-to-stage +1
-    @player.flipping = no
-    @player.flopping = yes
-    @input-state.flop-on = off
-
-  if @input-state.flop-off
-    @input-state.flop-off = off
 
   @player.rotation = flipflopper.rotation
   @player.color = rotation-to-color @player.rotation

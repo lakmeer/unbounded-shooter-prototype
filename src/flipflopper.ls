@@ -1,16 +1,18 @@
 
 # Require
 
-{ id, log, tau, lerp } = require \std
+{ id, log, tau, abs, lerp } = require \std
 
 { Tween } = require \./tween
+
+{ mix-ease, Power2, Power3, Power4, PowerOut2, PowerOut3, PowerOut4 } = require \./ease
 
 
 #
 # Flipflopper
 #
 
-export class FlipFlopper
+export class LatchingFlipFlopper
 
   MODE_IDLE      = Symbol \idle
   MODE_COCKING   = Symbol \cocking
@@ -124,4 +126,58 @@ export class FlipFlopper
       @idle 0
       @reverse-trigger = d
       @cock-direction = 0
+
+
+export class FlipFlopper
+
+  threshold          = tau/60
+  return-threshold   = 0.1
+  stage-step         = tau/3
+  stage-to-rotation  = (* stage-step)
+  trigger-name       = (d) -> if d is -1 then TRIGGER_FLIP else TRIGGER_FLOP
+  normalise-stage    = (s) -> if s < 0 then 3 - (-s % 3) else s % 3
+  normalise-rotation = (θ) -> if θ < 0 then tau - (-θ % tau) else θ % tau
+
+  MODE_IDLE = Symbol \idle
+  MODE_FLIP = Symbol \flip
+  MODE_FLOP = Symbol \flop
+
+  TRIGGER_FLIP = \flip
+  TRIGGER_FLOP = \flop
+
+  custom-ease = mix-ease Power2, PowerOut4
+
+  ({ @speed=1 }={}) ->
+    @θ     = 0
+    @stage = 0
+    @mode  = MODE_IDLE
+    @direction = 0
+
+    @trigger-state =
+      "#TRIGGER_FLIP": ignore: no
+      "#TRIGGER_FLOP": ignore: no
+
+  rotation:~ ->
+    normalise-rotation @θ
+
+  static-to-stage: (d, p) ->
+    trigger = trigger-name d
+
+    if @trigger-state[trigger].ignore
+      if p < return-threshold
+        @trigger-state[trigger].ignore = no
+
+    else
+      target  = stage-to-rotation @stage + d
+      current = stage-to-rotation @stage
+
+      @θ = lerp (custom-ease p), current, target
+
+      if (abs @θ - target) < threshold
+        @θ = target
+        @stage += d
+        @trigger-state[trigger].ignore = yes
+
+  rotation:~ ->
+    normalise-rotation @θ
 

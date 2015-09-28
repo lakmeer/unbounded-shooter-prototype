@@ -231,12 +231,11 @@ render = (Δt, t) ->
       for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
 
     box = (i, s) ~>
-      @fill-style = if s is 0 then \lightgrey else if s < 0 then \red else \#2c2
+      @fill-style = if not s then \lightgrey else \red
       @fill-rect width - 50, 20 + i * 40, 30, 30
 
-    box 0, flipflopper.cock-direction
-    box 1, flipflopper.ignored-trigger
-    box 2, flipflopper.reverse-trigger
+    box 0, flipflopper.trigger-state.flip.ignore
+    box 1, flipflopper.trigger-state.flop.ignore
 
 
 #

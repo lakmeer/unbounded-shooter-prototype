@@ -1,13 +1,16 @@
 
+#
 # Require
+#
 
 { id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
-{ wrap, rgb, lerp, rnd } = require \std
+{ wrap, rgb, lerp, rnd, random-range } = require \std
 
 require \./global
 
 { FrameDriver } = require \./frame-driver
 { FlipFlopper } = require \./flipflopper
+{ DebugVis }    = require \./debug
 { Blitter }     = require \./blitter
 { Input }       = require \./input
 { Tween }       = require \./tween
@@ -16,35 +19,12 @@ Ease   = require \./ease
 Timer  = require \./timer
 Bullet = require \./bullet
 
-FIRE_MODE_ALTERNATE = Symbol \alternate
-FIRE_MODE_BLEND     = Symbol \blend
+{ lerp-color, rotation-to-color, rotation-to-sprite-index } = require \./common
 
 
-# Helper classes
-
-class Canvas
-
-  ->
-    @canvas = document.create-element \canvas
-    @ctx = @canvas.get-context \2d
-    @canvas.height = window.inner-height
-    @canvas.width = window.inner-height / 1.5
-
-  clear: ->
-    @ctx.clear-rect 0, 0, @canvas.width, @canvas.height
-
-  install: (host) ->
-    host.append-child @canvas
-
-
-
-# Debug
-
-SHOW_EASING_TESTS = no
-SHOW_TWEEN_BOXES  = no
-
-
+#
 # Config
+#
 
 auto-travel-speed      = 500
 max-speed              = 500
@@ -54,97 +34,18 @@ camera-drift-limit     = 200   # TODO: Make camera seek center gradually
 flip-flop-time         = 0.2
 rotation-history-limit = 200
 
-colors =
-  [1 0 0] [1 1 0] [0 1 0]
-  [0 1 0] [0 1 1] [0 0 1]
-  [0 0 1] [1 0 1] [1 0 0]
 
-flipflopper = new FlipFlopper speed: 0.2
+#
+# INIT
+#
+
+main-canvas  = new Blitter
+input        = new Input
+flipflopper  = new FlipFlopper speed: 0.2
+debug-vis    = new DebugVis flipflopper
 
 
 # Misc functions
-
-lerp-color = (t, start, end) ->
-  [ (lerp t, start.0, end.0),
-    (lerp t, start.1, end.1),
-    (lerp t, start.2, end.2) ]
-
-rotation-to-color = (θ) ->
-  if 0 < θ < tau
-    floor (θ/tau) * colors.length
-  else
-    0
-
-rotation-to-sprite-index = (θ, frames) ->
-  floor frames * (θ % (tau/3)) / (tau/3)
-
-state-color = ->
-  if it then \red else \lightgrey
-
-diamond = ([x, y]) ->
-  if x == 0
-    [x, y]
-  else
-    [x/2, y/2]
-
-box = (ctx, pos, size, color) ~>
-  ctx.fill-style = color
-  ctx.fill-rect pos.0 - size.0/2, pos.1 - size.1/2, size.0, size.1
-
-box-top = (ctx, pos, size, color) ~>
-  ctx.fill-style = color
-  ctx.fill-rect pos.0 - size.0/2, pos.1, size.0, size.1
-
-color-barrel =
-  draw: (cnv, pos, θ, r = 60, o = tau * 9/12, m = colors.length) ->
-    let this = cnv.ctx
-      for color, i in colors
-        @fill-style = rgb color
-        @begin-path!
-        @move-to pos.0, pos.1
-        @arc pos.0, pos.1, r, -θ + tau/m*i + o, -θ + tau/m*(i+1) + o
-        @close-path!
-        @fill!
-      @stroke-style = \white
-      @begin-path!
-      @move-to pos.0, pos.1
-      @line-to pos.0 + r*sin(0), pos.1 - r*cos(0)
-      @close-path!
-      @stroke!
-
-controller-state =
-  draw: (cnv, [x, y], game-state) ->
-    let this = cnv.ctx
-      # Triggers
-      box @, [x - 80, y - 20], trigger-size, \grey
-      box @, [x + 80, y - 20], trigger-size, \grey
-      box-top @, [x - 80, y - 52], [25 65 * game-state.input-state.flip], \white
-      box-top @, [x + 80, y - 52], [25 65 * game-state.input-state.flop], \white
-
-      # Trigger ignore state
-      box @, [x - 80, y + 35], [25 25], state-color flipflopper.trigger-state.flip.ignore
-      box @, [x + 80, y + 35], [25 25], state-color flipflopper.trigger-state.flop.ignore
-
-      # Joystick range
-      input-vel = [ game-state.input-state.x, game-state.input-state.y ]
-      @begin-path!
-      @arc x, y, 50, tau/2, tau
-      @line-to x, y + 50
-      @close-path!
-      @stroke!
-
-      # Joystick location
-      @fill-style = \red
-      @begin-path!
-      @arc x + 50 * input-vel.0, y - 50 * input-vel.1, 6, 0, tau
-      @close-path!
-      @fill!
-
-      # Special Buttons
-      box @, [x - 65, y + 70], [55 25], if game-state.input-state.fire    then \yellow else \#333
-      box @, [x + 0,  y + 70], [50 25], if game-state.input-state.super   then \yellow else \#333
-      box @, [x + 65, y + 70], [55 25], if game-state.input-state.special then \yellow else \#333
-
 
 shoot = ->
   if game-state.fire-mode is FIRE_MODE_BLEND
@@ -197,34 +98,13 @@ global.game-state =
     right: off
     fire:  off
     pause: off
-
     flip: 0       # TRIGGERS
     flop: 0
-
     x: 0          # JOYSTICKS
     y: 0
-
     mouse-x: 0    # POINTERS
     mouse-y: 0
 
-
-# Debug state
-
-rotation-history = []
-
-push-rotation-history = (n) ->
-  rotation-history.push n
-  if rotation-history.length >= rotation-history-limit
-    rotation-history.shift!
-
-
-#
-# INIT
-#
-
-main-canvas  = new Blitter
-debug-canvas = new Canvas
-input        = new Input
 
 
 #
@@ -245,8 +125,6 @@ Sprite = (src, [ width, height ], frames) ->
 player-sprite = Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
 player-sprite-size = [ 70 80 ]
 
-trigger-size = [25 65]
-
 render = (Δt, t) ->
   p = Timer.get-progress @timers.flip-flop-timer
 
@@ -264,50 +142,17 @@ render = (Δt, t) ->
 
   main-canvas.rect   @target-pos, [90 90], color: \blue
 
+  len = random-range 5, 50
+  main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
   main-canvas.sprite player-sprite, @player.pos, player-sprite-size
-  len = 5 + rnd 50
   main-canvas.dntri @player.pos `v2.add` [0 -28 - len/2], [20 len], color: player-color
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
 
-
   # Debug rendering
-
-  let this = debug-canvas.ctx
-
-    { width, height } = debug-canvas.canvas
-
-    debug-canvas.clear!
-
-    # Rotation barrel
-    color-barrel.draw debug-canvas, [width/2, height/5], game-state.player.rotation
-    box debug-canvas.ctx, [width/2, height/5 - 67], [8 15], rgb colors[game-state.player.color]
-
-    # Controller state
-    controller-state.draw debug-canvas, [width/2, height/2], game-state
-
-    # Rotation history graph
-    for d, x in rotation-history
-      box debug-canvas.ctx, [x/rotation-history-limit * width, height - 10 - d * 10], [2 2], rgb colors[ rotation-to-color d ]
-
-    # Misc
-    if SHOW_EASING_TESTS
-      @fill-style = \white
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Linear(i/width), 2, 2
-      @fill-style = \red
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power2(i/width), 2, 2
-      @fill-style = \orange
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power3(i/width), 2, 2
-      @fill-style = \yellow
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Power4(i/width), 2, 2
-      @fill-style = \green
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut2(i/width), 2, 2
-      @fill-style = \cyan
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut3(i/width), 2, 2
-      @fill-style = \blue
-      for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
-
+  debug-vis.clear!
+  debug-vis.render game-state, flipflopper, Δt, t
 
 
 #
@@ -403,7 +248,8 @@ update = (Δt, t) ->
   @player.rotation = flipflopper.rotation
   @player.color = rotation-to-color @player.rotation
   player-sprite.index = rotation-to-sprite-index @player.rotation, player-sprite.frames
-  push-rotation-history @player.rotation
+
+  debug-vis.push-rotation-history @player.rotation
 
 
   #
@@ -463,5 +309,5 @@ frame-driver.start!
 # Init - assign
 
 main-canvas.install  document.body
-debug-canvas.install document.body
+debug-vis.install document.body
 

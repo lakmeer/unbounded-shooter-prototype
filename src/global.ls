@@ -8,6 +8,16 @@ global.MODE_COLOR  = Symbol \color
 global.MODE_NORMAL = Symbol \normal
 global.MODE_ADD    = Symbol \add
 
+# Color wheel segments
+global.colors =
+  [1 0 0] [1 1 0] [0 1 0]
+  [0 1 0] [0 1 1] [0 0 1]
+  [0 0 1] [1 0 1] [1 0 0]
+
+# Game states
+global.FIRE_MODE_ALTERNATE = Symbol \alternate
+global.FIRE_MODE_BLEND     = Symbol \blend
+
 # Controller input signals
 global.INPUT_FIRE    = Symbol \input-fire
 global.INPUT_FLIP    = Symbol \input-flip
@@ -24,4 +34,5 @@ global.INPUT_SPECIAL = Symbol \input-special
 #
 
 global.GAMEPAD_AXIS_DEADZONE = 0.2
+global.DEBUG_SHOW_EASING_TESTS = no
 

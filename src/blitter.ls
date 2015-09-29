@@ -10,6 +10,13 @@
 
 export class Blitter
 
+  bg-aspect = 0.3125
+  bg-scroll-speed = 20
+
+  bg = new Image
+  bg.src = \/assets/bg.jpg
+  bg.onload = -> bg-aspect := bg.width / bg.height
+
   mode-to-operation = (mode) ->
     switch mode
     | MODE_NORMAL => \source-over
@@ -113,10 +120,14 @@ export class Blitter
     @ctx.line-to x +  0,  y + h/2
     @ctx.line-to x - w/2, y - h/2
 
-  clear: ->
+  clear: (t = 0) ->
+    bg-height = @w / bg-aspect
+    bg-offset = t * bg-scroll-speed % bg-height
     @ctx.clear-rect 0, 0, @w, @h
     @ctx.global-alpha = 1
     @ctx.global-composite-operation = mode-to-operation MODE_NORMAL
+    @ctx.draw-image bg, 0, bg-offset, @w, bg-height
+    @ctx.draw-image bg, 0, bg-offset - bg-height, @w, bg-height
 
   draw-origin: ->
     [cx, cy] = game-state.camera-pos

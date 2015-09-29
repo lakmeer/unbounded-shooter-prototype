@@ -214,7 +214,7 @@ render = (Δt, t) ->
 
   sigil-pos = @player.pos `v2.add` [ 0 -8 ]
 
-  main-canvas.clear!
+  main-canvas.clear t
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
 

@@ -110,7 +110,7 @@ export class FlipFlopper
     target-rotation  = stage-to-rotation @stage + d
     current-rotation = stage-to-rotation @stage
 
-    @θ = lerp p/2, current-rotation, target-rotation
+    @θ = lerp (Ease.PowerOut3 p)/2, current-rotation, target-rotation
     if p is 1 then @mode = MODE_COCKED
     if p is 0 then @idle 0
 
@@ -121,7 +121,7 @@ export class FlipFlopper
     if p is 0
       @idle d
     else
-      @θ = lerp 0.5 + (1 - p)/2, current-rotation, target-rotation
+      @θ = lerp 0.5 + (1 - (Ease.Power3 p))/2, current-rotation, target-rotation
 
   reverse: (d, p) ->
     target-rotation  = stage-to-rotation @stage

@@ -49,17 +49,23 @@
 
 ## TODO
 
-- Fine tune firing rules
-  - Restrict blended fire to max fire rate
 - Real game units
 - Player physics
 - Basic world layout
-- Algorithm that creates sector angles from player max X speed?
+  - Algorithm that creates sector angles from player max X speed?
 - World binning
 - Sector binning
-- Turn whole world 45° to make binning easier?
+  - Turn whole world 45° to make binning easier?
 - Basic collision algorithm
 - Spawn some enemies in each sector
 - Sector debug overview
 - World debug overview
+
+- Finish latching flipflipper using better state structure
+- OR finish it with computer-controlled releases
+- Add input state visualisation
+- Create real diamond normaliser for gamepad input
+- Create GamepadController and KeyboardController that emit the same signals, feed them to Input
+- Fine tune firing rules
+  - Restrict blended fire to a max fire rate
 

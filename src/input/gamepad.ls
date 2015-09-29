@@ -72,6 +72,7 @@ export class GamepadController
       for raw, which in gamepad.axes
         dead  = -GAMEPAD_AXIS_DEADZONE < raw < GAMEPAD_AXIS_DEADZONE
         value = if dead then 0 else raw
+        value = if which is LEFT_STICK_Y then -value else value
 
         if value isnt @state.axes[which]
           @proxy-event value, axis-bindings.get which

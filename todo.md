@@ -63,9 +63,7 @@
 
 - Finish latching flipflipper using better state structure
 - OR finish it with computer-controlled releases
-- Add input state visualisation
 - Create real diamond normaliser for gamepad input
-- Create GamepadController and KeyboardController that emit the same signals, feed them to Input
 - Fine tune firing rules
   - Restrict blended fire to a max fire rate
 

@@ -12,7 +12,7 @@
 # Flipflopper
 #
 
-export class FlipFlopper
+export class LatchingFlipFlopper
 
   MODE_IDLE      = Symbol \idle
   MODE_COCKING   = Symbol \cocking
@@ -187,4 +187,8 @@ export class EasyFlipFlopper
 
   rotation:~ ->
     normalise-rotation @θ
+
+
+
+export FlipFlopper = LatchingFlipFlopper
 

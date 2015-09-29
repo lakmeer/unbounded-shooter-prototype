@@ -5,7 +5,7 @@
 
 { Tween } = require \./tween
 
-{ mix-ease, Power2, Power3, Power4, PowerOut2, PowerOut3, PowerOut4 } = require \./ease
+{ mix-ease, Linear } = Ease = require \./ease
 
 
 #
@@ -145,7 +145,7 @@ export class FlipFlopper
   TRIGGER_FLIP = \flip
   TRIGGER_FLOP = \flop
 
-  custom-ease = mix-ease Power2, PowerOut4
+  custom-ease = Linear #mix-ease Power2, PowerOut4
 
   ({ @speed=1 }={}) ->
     @θ     = 0

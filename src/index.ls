@@ -48,7 +48,7 @@ SHOW_TWEEN_BOXES  = no
 
 auto-travel-speed      = 300
 max-speed              = 300
-auto-fire-speed        = 0.08
+auto-fire-speed        = 0.04
 dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
 flip-flop-time         = 0.2
@@ -153,6 +153,9 @@ global.game-state =
     flip-trigger-direction: TRIGGER_DIRECTION_STABLE
     flop-trigger-direction: TRIGGER_DIRECTION_STABLE
 
+    x: 0          # JOYSTICKS
+    y: 0
+
     mouse-x: 0    # POINTERS
     mouse-y: 0
 
@@ -245,7 +248,7 @@ render = (Δt, t) ->
 
     box = (i, s) ~>
       @fill-style = if not s then \lightgrey else \red
-      @fill-rect width - 50, 20 + i * 40, 30, 30
+      @fill-rect width - 50, 40 + i * 40, 30, 30
 
     box 0, flipflopper.trigger-state.flip.ignore
     box 1, flipflopper.trigger-state.flop.ignore
@@ -278,6 +281,9 @@ update = (Δt, t) ->
           shoot!
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
+
+    | MOVE_X => @input-state.x = value
+    | MOVE_Y => @input-state.y = value
 
     | BUTTON_UP    => @input-state.up    = value
     | BUTTON_DOWN  => @input-state.down  = value
@@ -317,7 +323,9 @@ update = (Δt, t) ->
     else if @input-state.up then 1
     else 0
 
-  input-vel = [ left-to-right-vel, front-to-back-vel ]
+  input-vel = [ @input-state.x, @input-state.y ]
+
+  log input-vel
 
 
   # Normalise input velocity or circle (fwd) or diamond (back)

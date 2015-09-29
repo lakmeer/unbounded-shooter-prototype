@@ -43,8 +43,8 @@ SHOW_TWEEN_BOXES  = no
 
 # Config
 
-auto-travel-speed      = 100
-max-speed              = 500
+auto-travel-speed      = 300
+max-speed              = 300
 auto-fire-speed        = 0.08
 dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually

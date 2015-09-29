@@ -126,8 +126,8 @@ export class Blitter
     @ctx.clear-rect 0, 0, @w, @h
     @ctx.global-alpha = 1
     @ctx.global-composite-operation = mode-to-operation MODE_NORMAL
-    @ctx.draw-image bg, 0, bg-offset, @w, bg-height
-    @ctx.draw-image bg, 0, bg-offset - bg-height, @w, bg-height
+    #@ctx.draw-image bg, 0, bg-offset, @w, bg-height
+    #@ctx.draw-image bg, 0, bg-offset - bg-height, @w, bg-height
 
   draw-origin: ->
     [cx, cy] = game-state.camera-pos

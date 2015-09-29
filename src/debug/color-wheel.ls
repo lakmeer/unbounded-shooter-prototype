@@ -33,5 +33,5 @@ export class ColorWheel implements Drawing
     @ctx.close-path!
     @ctx.stroke!
 
-    @box-at pos `v2.add` [0 -67], [8 15], rgb colors[player-color]
+    @box-at pos `v2.add` [0, -(@r + 7)], [8 15], rgb colors[player-color]
 

@@ -87,6 +87,14 @@ diamond = ([x, y]) ->
   else
     [x/2, y/2]
 
+box = (ctx, pos, size, color) ~>
+  ctx.fill-style = color
+  ctx.fill-rect pos.0 - size.0/2, pos.1 - size.1/2, size.0, size.1
+
+box-top = (ctx, pos, size, color) ~>
+  ctx.fill-style = color
+  ctx.fill-rect pos.0 - size.0/2, pos.1, size.0, size.1
+
 color-barrel =
   draw: (cnv, pos, θ, r = 60, o = tau * 9/12, m = colors.length) ->
     let this = cnv.ctx
@@ -103,6 +111,39 @@ color-barrel =
       @line-to pos.0 + r*sin(0), pos.1 - r*cos(0)
       @close-path!
       @stroke!
+
+controller-state =
+  draw: (cnv, [x, y], game-state) ->
+    let this = cnv.ctx
+      # Triggers
+      box @, [x - 80, y - 20], trigger-size, \grey
+      box @, [x + 80, y - 20], trigger-size, \grey
+      box-top @, [x - 80, y - 52], [25 65 * game-state.input-state.flip], \white
+      box-top @, [x + 80, y - 52], [25 65 * game-state.input-state.flop], \white
+
+      # Trigger ignore state
+      box @, [x - 80, y + 35], [25 25], state-color flipflopper.trigger-state.flip.ignore
+      box @, [x + 80, y + 35], [25 25], state-color flipflopper.trigger-state.flop.ignore
+
+      # Joystick range
+      input-vel = [ game-state.input-state.x, game-state.input-state.y ]
+      @begin-path!
+      @arc x, y, 50, tau/2, tau
+      @line-to x, y + 50
+      @close-path!
+      @stroke!
+
+      # Joystick location
+      @fill-style = \red
+      @begin-path!
+      @arc x + 50 * input-vel.0, y - 50 * input-vel.1, 6, 0, tau
+      @close-path!
+      @fill!
+
+      # Special Buttons
+      box @, [x - 65, y + 70], [55 25], if game-state.input-state.fire    then \yellow else \#333
+      box @, [x + 0,  y + 70], [50 25], if game-state.input-state.super   then \yellow else \#333
+      box @, [x + 65, y + 70], [55 25], if game-state.input-state.special then \yellow else \#333
 
 
 shoot = ->
@@ -217,8 +258,6 @@ render = (Δt, t) ->
     else
       colors[@player.color]
 
-  sigil-pos = @player.pos `v2.add` [ 0 -8 ]
-
   main-canvas.clear t
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
@@ -239,53 +278,18 @@ render = (Δt, t) ->
 
     { width, height } = debug-canvas.canvas
 
-    box = (pos, size, color) ~>
-      @fill-style = color
-      @fill-rect pos.0 - size.0/2, pos.1 - size.1/2, size.0, size.1
-
-    box-top = (pos, size, color) ~>
-      @fill-style = color
-      @fill-rect pos.0 - size.0/2, pos.1, size.0, size.1
-
     debug-canvas.clear!
 
     # Rotation barrel
     color-barrel.draw debug-canvas, [width/2, height/5], game-state.player.rotation
-    box [width/2, height/5 - 67], [8 15], rgb colors[game-state.player.color]
+    box debug-canvas.ctx, [width/2, height/5 - 67], [8 15], rgb colors[game-state.player.color]
+
+    # Controller state
+    controller-state.draw debug-canvas, [width/2, height/2], game-state
 
     # Rotation history graph
     for d, x in rotation-history
-      box [x/rotation-history-limit * width, height - 10 - d * 10], [2 2], rgb colors[ rotation-to-color d ]
-
-    # Triggers
-    box [width/2 - 80, height/2 - 20], trigger-size, \grey
-    box [width/2 + 80, height/2 - 20], trigger-size, \grey
-    box-top [width/2 - 80, height/2 - 52], [25 65 * game-state.input-state.flip], \white
-    box-top [width/2 + 80, height/2 - 52], [25 65 * game-state.input-state.flop], \white
-
-    # Trigger ignore state
-    box [width/2 - 80, height/2 + 35], [25 25], state-color flipflopper.trigger-state.flip.ignore
-    box [width/2 + 80, height/2 + 35], [25 25], state-color flipflopper.trigger-state.flop.ignore
-
-    # Joystick range
-    input-vel = [ game-state.input-state.x, game-state.input-state.y ]
-    @begin-path!
-    @arc width/2, height/2, 50, tau/2, tau
-    @line-to width/2, height/2 + 50
-    @close-path!
-    @stroke!
-
-    # Joystick location
-    @fill-style = \red
-    @begin-path!
-    @arc width/2 + 50 * input-vel.0, height/2 - 50 * input-vel.1, 6, 0, tau
-    @close-path!
-    @fill!
-
-    # Special Buttons
-    box [width/2 - 65, height/2 + 70], [55 25], if game-state.input-state.fire    then \yellow else \#333
-    box [width/2 + 0,  height/2 + 70], [50 25], if game-state.input-state.super   then \yellow else \#333
-    box [width/2 + 65, height/2 + 70], [55 25], if game-state.input-state.special then \yellow else \#333
+      box debug-canvas.ctx, [x/rotation-history-limit * width, height - 10 - d * 10], [2 2], rgb colors[ rotation-to-color d ]
 
     # Misc
     if SHOW_EASING_TESTS

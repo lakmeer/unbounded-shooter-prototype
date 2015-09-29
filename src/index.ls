@@ -78,6 +78,9 @@ rotation-to-color = (θ) ->
 rotation-to-sprite-index = (θ, frames) ->
   floor frames * (θ % (tau/3)) / (tau/3)
 
+state-color = ->
+  if it then \red else \lightgrey
+
 diamond = ([x, y]) ->
   if x == 0
     [x, y]
@@ -85,7 +88,7 @@ diamond = ([x, y]) ->
     [x/2, y/2]
 
 color-barrel =
-  draw: (cnv, pos, θ, r = 75, o = tau * 9/12, m = colors.length) ->
+  draw: (cnv, pos, θ, r = 60, o = tau * 9/12, m = colors.length) ->
     let this = cnv.ctx
       for color, i in colors
         @fill-style = rgb color
@@ -201,6 +204,8 @@ Sprite = (src, [ width, height ], frames) ->
 player-sprite = Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
 player-sprite-size = [ 70 80 ]
 
+trigger-size = [25 65]
+
 render = (Δt, t) ->
   p = Timer.get-progress @timers.flip-flop-timer
 
@@ -234,23 +239,55 @@ render = (Δt, t) ->
 
     { width, height } = debug-canvas.canvas
 
+    box = (pos, size, color) ~>
+      @fill-style = color
+      @fill-rect pos.0 - size.0/2, pos.1 - size.1/2, size.0, size.1
+
+    box-top = (pos, size, color) ~>
+      @fill-style = color
+      @fill-rect pos.0 - size.0/2, pos.1, size.0, size.1
+
     debug-canvas.clear!
-    color-barrel.draw debug-canvas, [width/2, 100], game-state.player.rotation
-    @fill-style = rgb colors[game-state.player.color]
-    @fill-rect width/2 - 2, 10, 4, 15
 
+    # Rotation barrel
+    color-barrel.draw debug-canvas, [width/2, height/5], game-state.player.rotation
+    box [width/2, height/5 - 67], [8 15], rgb colors[game-state.player.color]
+
+    # Rotation history graph
     for d, x in rotation-history
-      @fill-style = rgb colors[ rotation-to-color d ]
-      @fill-rect x/rotation-history-limit * width, height - 10 - d * 10, 2, 2
+      box [x/rotation-history-limit * width, height - 10 - d * 10], [2 2], rgb colors[ rotation-to-color d ]
 
-    @fill-style = \grey
-    @fill-rect 20, height/2, 20, 50
-    @fill-rect 50, height/2, 20, 50
+    # Triggers
+    box [width/2 - 80, height/2 - 20], trigger-size, \grey
+    box [width/2 + 80, height/2 - 20], trigger-size, \grey
+    box-top [width/2 - 80, height/2 - 52], [25 65 * game-state.input-state.flip], \white
+    box-top [width/2 + 80, height/2 - 52], [25 65 * game-state.input-state.flop], \white
 
-    @fill-style = \white
-    @fill-rect 20, height/2, 20, 50 * game-state.input-state.flip
-    @fill-rect 50, height/2, 20, 50 * game-state.input-state.flop
+    # Trigger ignore state
+    box [width/2 - 80, height/2 + 35], [25 25], state-color flipflopper.trigger-state.flip.ignore
+    box [width/2 + 80, height/2 + 35], [25 25], state-color flipflopper.trigger-state.flop.ignore
 
+    # Joystick range
+    input-vel = [ game-state.input-state.x, game-state.input-state.y ]
+    @begin-path!
+    @arc width/2, height/2, 50, tau/2, tau
+    @line-to width/2, height/2 + 50
+    @close-path!
+    @stroke!
+
+    # Joystick location
+    @fill-style = \red
+    @begin-path!
+    @arc width/2 + 50 * input-vel.0, height/2 - 50 * input-vel.1, 6, 0, tau
+    @close-path!
+    @fill!
+
+    # Special Buttons
+    box [width/2 - 65, height/2 + 70], [55 25], if game-state.input-state.fire    then \yellow else \#333
+    box [width/2 + 0,  height/2 + 70], [50 25], if game-state.input-state.super   then \yellow else \#333
+    box [width/2 + 65, height/2 + 70], [55 25], if game-state.input-state.special then \yellow else \#333
+
+    # Misc
     if SHOW_EASING_TESTS
       @fill-style = \white
       for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.Linear(i/width), 2, 2
@@ -267,12 +304,6 @@ render = (Δt, t) ->
       @fill-style = \blue
       for i from 0 to width by 5 => @fill-rect i, height - 150 - 100 * Ease.PowerOut4(i/width), 2, 2
 
-    box = (i, s) ~>
-      @fill-style = if not s then \lightgrey else \red
-      @fill-rect width - 50, 40 + i * 40, 30, 30
-
-    box 0, flipflopper.trigger-state.flip.ignore
-    box 1, flipflopper.trigger-state.flop.ignore
 
 
 #

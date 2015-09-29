@@ -3,9 +3,9 @@
 # Bullet
 #
 
-export create = (pos, color) ->
+export create = (pos, vel, color) ->
   pos:  [ pos.0, pos.1 ]
-  vel:  [ 0 3000 ]
+  vel:  [ 0 vel ]
   size: [ 100 300 ]
   life: 1
   Δlife: 1

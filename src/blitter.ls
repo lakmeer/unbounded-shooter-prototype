@@ -142,6 +142,11 @@ export class Blitter
     @ctx.close-path!
     @ctx.stroke!
 
+  sprite: ({ width, height, image, index }, pos, size) ->
+    [x, y] = @translate-pos pos
+    [w, h] = @translate-size size
+    @ctx.draw-image image, index * width, 0, width, height, x - w/2, y - h/2, w, h
+
   install: (host) ->
     host.append-child @canvas
 

@@ -50,17 +50,13 @@ axis-bindings = new Map
 
 export class GamepadController
 
-  (@bindings) ->
+  (@callback = id) ->
     @state =
       buttons: [ 0 ] * 16
       axes:    [ 0 ] * 4
 
   proxy-event: (value, binding) ->
-    log \gamepad-proxy, value, binding
-    if @bindings.get binding
-      that value
-    else
-      log "Unsupported input binding:", binding
+    @callback binding, value
 
   update: (Δt) ->
     gamepad = navigator.get-gamepads!0

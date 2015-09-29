@@ -2,7 +2,7 @@
 # Require
 
 { id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
-{ wrap, rgb, lerp } = require \std
+{ wrap, rgb, lerp, rnd } = require \std
 
 require \./global
 
@@ -75,6 +75,9 @@ rotation-to-color = (θ) ->
   else
     0
 
+rotation-to-sprite-index = (θ, frames) ->
+  floor frames * (θ % (tau/3)) / (tau/3)
+
 diamond = ([x, y]) ->
   if x == 0
     [x, y]
@@ -101,18 +104,20 @@ color-barrel =
 
 shoot = ->
   if game-state.fire-mode is FIRE_MODE_BLEND
-    left  = game-state.player.pos `v2.add` [dual-fire-separation/-4 150]
-    right = game-state.player.pos `v2.add` [dual-fire-separation/+4 150]
-    game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color - 1]
-    game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color + 1]
+    left  = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
+    mid   = game-state.player.pos `v2.add` [0 170]
+    right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
+    game-state.player-bullets.push Bullet.create left,  2000, rgb colors[game-state.player.color - 1]
+    game-state.player-bullets.push Bullet.create mid,   2000, rgb colors[game-state.player.color + 0]
+    game-state.player-bullets.push Bullet.create right, 2000, rgb colors[game-state.player.color + 1]
 
   else
     if game-state.shoot-alternate
       left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-      game-state.player-bullets.push Bullet.create left, rgb colors[game-state.player.color]
+      game-state.player-bullets.push Bullet.create left, 3000, rgb colors[game-state.player.color]
     else
       right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-      game-state.player-bullets.push Bullet.create right, rgb colors[game-state.player.color]
+      game-state.player-bullets.push Bullet.create right, 3000, rgb colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
 
 
@@ -137,6 +142,7 @@ global.game-state =
 
   fire-mode: FIRE_MODE_ALTERNATE
   shoot-alternate: no
+  fire-render-alternate: no
   target-pos: [0 500]
   player-bullets: []
 
@@ -181,6 +187,20 @@ input        = new Input
 # RENDER
 #
 
+Sprite = (src, [ width, height ], frames) ->
+  image = new Image
+  image.width  = width * frames
+  image.height = height
+  image.src    = src
+  index: 0
+  width: width
+  height: height
+  image: image
+  frames: frames
+
+player-sprite = Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
+player-sprite-size = [ 70 80 ]
+
 render = (Δt, t) ->
   p = Timer.get-progress @timers.flip-flop-timer
 
@@ -197,9 +217,12 @@ render = (Δt, t) ->
   main-canvas.clear!
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
+
   main-canvas.rect   @target-pos, [90 90], color: \blue
-  main-canvas.uptri  @player.pos, [50 50], color: \#ccc
-  main-canvas.circle sigil-pos, 10, color: player-color
+
+  main-canvas.sprite player-sprite, @player.pos, player-sprite-size
+  len = 5 + rnd 50
+  main-canvas.dntri @player.pos `v2.add` [0 -28 - len/2], [20 len], color: player-color
 
   for bullet in @player-bullets
     Bullet.draw main-canvas, bullet
@@ -274,7 +297,6 @@ update = (Δt, t) ->
     | INPUT_FIRE  =>
       if @input-state.fire isnt value
         @input-state.fire = value
-
         if value
           shoot!
           if @fire-mode is FIRE_MODE_ALTERNATE
@@ -283,7 +305,9 @@ update = (Δt, t) ->
     | INPUT_X => @input-state.x = value
     | INPUT_Y => @input-state.y = value
 
-    | INPUT_PAUSE => frame-driver.toggle!
+    | INPUT_PAUSE =>
+      if value
+        frame-driver.toggle!
 
     | INPUT_FLIP =>
       if @input-state.flip < value
@@ -343,7 +367,7 @@ update = (Δt, t) ->
 
   @player.rotation = flipflopper.rotation
   @player.color = rotation-to-color @player.rotation
-
+  player-sprite.index = rotation-to-sprite-index @player.rotation, player-sprite.frames
   push-rotation-history @player.rotation
 
 

@@ -38,7 +38,7 @@ export class KeyboardController
 
   simulated-travel-time = 0.05 * 2
 
-  (@bindings) ->
+  (@callback = id) ->
 
     @sim-triggers =
       * type: INPUT_FLIP
@@ -51,14 +51,17 @@ export class KeyboardController
         dir:  TRIGGER_DIR_STABLE
         timer: Timer.create simulated-travel-time, disabled: yes
 
+    @cursor-state =
+      up:    off
+      down:  off
+      left:  off
+      right: off
+
     document.add-event-listener \keydown, @handle-key on
     document.add-event-listener \keyup,   @handle-key off
 
-  proxy-event: (binding, value) ->
-    if @bindings[binding]?
-      that value
-    else
-      log "Unsupported input binding:", binding
+  proxy-event: (type, value) ->
+    @callback type, value
 
   update: (Δt) ->
     for trigger in @sim-triggers
@@ -91,11 +94,19 @@ export class KeyboardController
     | KEY_D  => @simulate-trigger  1, dir, 0.5
     | KEY_S  => @proxy-event INPUT_FIRE,  dir
     | KEY_X  => @proxy-event INPUT_FIRE,  dir
-    | UP     => @proxy-event INPUT_Y,  +1 * dir
-    | DOWN   => @proxy-event INPUT_Y,  -1 * dir
-    | LEFT   => @proxy-event INPUT_X,  -1 * dir
-    | RIGHT  => @proxy-event INPUT_X,  +1 * dir
-    | ESCAPE => @proxy-event INPUT_PAUSE (if dir then frame-driver.toggle!)
+    | UP     => @cursor-velocity-y \up,    dir
+    | DOWN   => @cursor-velocity-y \down,  dir
+    | LEFT   => @cursor-velocity-x \left,  dir
+    | RIGHT  => @cursor-velocity-x \right, dir
+    | ESCAPE => @proxy-event INPUT_PAUSE, (if dir then frame-driver.toggle!)
+
+  cursor-velocity-x: (key, dir) ->
+    @cursor-state[key] = dir
+    @proxy-event INPUT_X, @cursor-state.right - @cursor-state.left
+
+  cursor-velocity-y: (key, dir) ->
+    @cursor-state[key] = dir
+    @proxy-event INPUT_Y, @cursor-state.up - @cursor-state.down
 
   simulate: (trigger, target, dir) ->
     direction = if dir then TRIGGER_DIR_PRESS else TRIGGER_DIR_RELEASE

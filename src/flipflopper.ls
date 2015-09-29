@@ -134,6 +134,7 @@ export class FlipFlopper
       @cock-direction = 0
 
 
+
 export class EasyFlipFlopper
 
   threshold          = tau/60

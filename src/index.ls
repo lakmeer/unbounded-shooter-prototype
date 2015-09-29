@@ -150,8 +150,6 @@ global.game-state =
 
     flip: 0       # TRIGGERS
     flop: 0
-    flip-trigger-direction: TRIGGER_DIRECTION_STABLE
-    flop-trigger-direction: TRIGGER_DIRECTION_STABLE
 
     x: 0          # JOYSTICKS
     y: 0
@@ -273,7 +271,7 @@ update = (Δt, t) ->
     [ type, value ] = event
 
     switch type
-    | BUTTON_FIRE  =>
+    | INPUT_FIRE  =>
       if @input-state.fire isnt value
         @input-state.fire = value
 
@@ -282,22 +280,19 @@ update = (Δt, t) ->
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
 
-    | MOVE_X => @input-state.x = value
-    | MOVE_Y => @input-state.y = value
+    | INPUT_X => @input-state.x = value
+    | INPUT_Y => @input-state.y = value
 
-    | BUTTON_UP    => @input-state.up    = value
-    | BUTTON_DOWN  => @input-state.down  = value
-    | BUTTON_LEFT  => @input-state.left  = value
-    | BUTTON_RIGHT => @input-state.right = value
+    | INPUT_PAUSE => frame-driver.toggle!
 
-    | TRIGGER_FLIP =>
+    | INPUT_FLIP =>
       if @input-state.flip < value
         flipflopper.static-to-stage -1, value
       else if @input-state.flip > value
         flipflopper.static-to-stage -1, value
       @input-state.flip  = value
 
-    | TRIGGER_FLOP =>
+    | INPUT_FLOP =>
       if @input-state.flop < value
         flipflopper.static-to-stage 1, value
       else if @input-state.flop > value

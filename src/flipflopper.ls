@@ -12,7 +12,7 @@
 # Flipflopper
 #
 
-export class LatchingFlipFlopper
+export class FlipFlopper
 
   MODE_IDLE      = Symbol \idle
   MODE_COCKING   = Symbol \cocking
@@ -38,6 +38,12 @@ export class LatchingFlipFlopper
     @cock-direction = 0
     @reverse-trigger = 0
     @ignored-trigger = 0
+
+    @trigger-state =
+      flip:
+        ingore: no
+      flop:
+        ingore: no
 
   rotation:~ ->
     normalise-rotation @θ
@@ -128,7 +134,7 @@ export class LatchingFlipFlopper
       @cock-direction = 0
 
 
-export class FlipFlopper
+export class EasyFlipFlopper
 
   threshold          = tau/60
   return-threshold   = 0.1
@@ -145,7 +151,7 @@ export class FlipFlopper
   TRIGGER_FLIP = \flip
   TRIGGER_FLOP = \flop
 
-  custom-ease = Linear #mix-ease Power2, PowerOut4
+  custom-ease = Ease.Power2 #mix-ease Power2, PowerOut4
 
   ({ @speed=1 }={}) ->
     @θ     = 0

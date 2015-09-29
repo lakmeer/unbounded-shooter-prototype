@@ -277,7 +277,7 @@ update = (Δt, t) ->
       if @input-state.fire isnt value
         @input-state.fire = value
 
-        if value is on
+        if value
           shoot!
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
@@ -352,7 +352,9 @@ update = (Δt, t) ->
   push-rotation-history @player.rotation
 
 
-  # Fire
+  #
+  # Firing
+  #
 
   if game-state.player.color % 3 is 1
     new-fire-mode = FIRE_MODE_BLEND

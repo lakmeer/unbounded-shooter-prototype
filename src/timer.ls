@@ -22,6 +22,8 @@ export update-and-stop = (timer, Δt) ->
     else
       timer.current += Δt
       timer.elapsed = no
+  else
+    timer.elapsed = no
 
 export update-and-carry = (timer, Δt) ->
   if timer.active
@@ -35,7 +37,8 @@ export update-and-carry = (timer, Δt) ->
 export get-progress = (timer) ->
   timer.current / timer.target
 
-export reset = (timer) ->
+export reset = (timer, target = 0) ->
+  if target then timer.target = target
   timer.current = 0
   timer.elapsed = no
   timer.active = yes

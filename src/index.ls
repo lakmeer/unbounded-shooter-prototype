@@ -46,8 +46,8 @@ SHOW_TWEEN_BOXES  = no
 
 # Config
 
-auto-travel-speed      = 300
-max-speed              = 300
+auto-travel-speed      = 500
+max-speed              = 500
 auto-fire-speed        = 0.04
 dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
@@ -325,15 +325,15 @@ update = (Δt, t) ->
 
   input-vel = [ @input-state.x, @input-state.y ]
 
-  log input-vel
-
 
   # Normalise input velocity or circle (fwd) or diamond (back)
 
-  if input-vel.1 >= 0
-    player-vel = (v2.norm input-vel) `v2.scale` max-speed
-  else
-    player-vel = (diamond input-vel) `v2.scale` max-speed
+  # if input-vel.1 >= 0
+  #   player-vel = (v2.norm input-vel) `v2.scale` max-speed
+  # else
+  #   player-vel = (diamond input-vel) `v2.scale` max-speed
+
+  player-vel = input-vel `v2.scale` max-speed
 
 
   # Apply input velocity to player

@@ -197,11 +197,8 @@ export class Input
     | BUTTON_A => @push-event BUTTON_FIRE, dir
 
   handle-gamepad-axes: (which, value) ->
-    if  which is LEFT_STICK_X
-      log which, value
-
     switch which
     | LEFT_STICK_X => @push-event MOVE_X, value
-    | LEFT_STICK_Y => @push-event MOVE_Y, -value
+    | LEFT_STICK_Y => @push-event MOVE_Y, (if value is 0 then 0 else -value)
     | otherwise => void
 

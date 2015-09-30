@@ -5,8 +5,9 @@
 
 Timer = require \../timer
 
-{ KeyboardController } = require \./keyboard
-{ GamepadController }  = require \./gamepad
+{ GamepadController }   = require \./gamepad
+{ KeyboardController }  = require \./keyboard
+{ AutomatedController } = require \./automated
 
 
 #
@@ -18,12 +19,14 @@ export class Input
   ->
     @pending-events = [ ]
 
-    @keyboard = new KeyboardController @push-event
-    @gamepad  = new GamepadController  @push-event
+    @keyboard = new KeyboardController  @push-event
+    @gamepad  = new GamepadController   @push-event
+    @auto     = new AutomatedController @push-event
 
-  update: (Δt) ->
-    @keyboard.update Δt
-    @gamepad.update Δt
+  update: (Δt, t) ->
+    @auto.update     Δt, t
+    @keyboard.update Δt, t
+    @gamepad.update  Δt, t
 
   push-event: (type, value) ~>
     @pending-events.push [ type, value ]

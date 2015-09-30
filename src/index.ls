@@ -19,7 +19,7 @@ Ease   = require \./ease
 Timer  = require \./timer
 Bullet = require \./bullet
 
-{ lerp-color, rotation-to-color, rotation-to-sprite-index } = require \./common
+{ lerp-color, diamond, rotation-to-color, rotation-to-sprite-index } = require \./common
 
 
 #
@@ -102,9 +102,10 @@ global.game-state =
     flop: 0
     x: 0          # JOYSTICKS
     y: 0
+    raw-x: 0      # JOYSTICK DEBUG
+    raw-y: 0
     mouse-x: 0    # POINTERS
     mouse-y: 0
-
 
 
 #
@@ -140,7 +141,7 @@ render = (Δt, t) ->
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
 
-  main-canvas.rect   @target-pos, [90 90], color: \blue
+  main-canvas.rect @target-pos, [90 90], color: \blue
 
   len = random-range 5, 50
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
@@ -165,7 +166,7 @@ update = (Δt, t) ->
 
   Tween.update-all Δt
   Timer.update-and-carry @timers.auto-fire-timer, Δt
-  input.update Δt  # Debug only - real input controller doesn't need timers
+  input.update Δt, t  # Debug only - real input controller doesn't need timers
 
 
   # Consume input events
@@ -182,8 +183,11 @@ update = (Δt, t) ->
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
 
-    | INPUT_X => @input-state.x = value
-    | INPUT_Y => @input-state.y = value
+    #| INPUT_X => @input-state.x = value
+    #| INPUT_Y => @input-state.y = value
+
+    | INPUT_RAW_X => @input-state.raw-x = value
+    | INPUT_RAW_Y => @input-state.raw-y = value
 
     | INPUT_PAUSE =>
       if value
@@ -204,41 +208,31 @@ update = (Δt, t) ->
       @input-state.flop  = value
 
 
+  # Normalise X/Y input
+
+  input-vec = [ @input-state.raw-x, @input-state.raw-y ]
+
+  normal-vec =
+    if input-vec.1 > 0
+      v2.norm input-vec
+    else
+      θ = Math.atan2 -@input-state.raw-y, Math.abs @input-state.raw-x
+      α = tau/2 - tau/8
+      mag = sin(α) / sin(α - θ)
+      (v2.norm input-vec) `v2.scale` mag
+
+  @input-state.x = normal-vec.0
+  @input-state.y = normal-vec.1
+
+  player-vel = input-vec `v2.scale` max-speed
+  @player.pos.0 += player-vel.0 * Δt
+  @player.pos.1 += player-vel.1 * Δt
+
+
   # Travel forward inexorably
 
   @player.pos.1 += auto-travel-speed * Δt
   @target-pos.1 += auto-travel-speed * Δt
-
-
-  # Generate input velocity vector
-
-  left-to-right-vel =
-    if @input-state.left then -1
-    else if @input-state.right then 1
-    else 0
-
-  front-to-back-vel =
-    if @input-state.down then -1
-    else if @input-state.up then 1
-    else 0
-
-  input-vel = [ @input-state.x, @input-state.y ]
-
-
-  # Normalise input velocity or circle (fwd) or diamond (back)
-
-  # if input-vel.1 >= 0
-  #   player-vel = (v2.norm input-vel) `v2.scale` max-speed
-  # else
-  #   player-vel = (diamond input-vel) `v2.scale` max-speed
-
-  player-vel = input-vel `v2.scale` max-speed
-
-
-  # Apply input velocity to player
-
-  @player.pos.0 += player-vel.0 * Δt
-  @player.pos.1 += player-vel.1 * Δt
 
 
   #

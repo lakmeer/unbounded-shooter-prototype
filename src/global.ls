@@ -27,6 +27,8 @@ global.INPUT_PAUSE   = Symbol \input-pause
 global.INPUT_X       = Symbol \input-move-x
 global.INPUT_Y       = Symbol \input-move-y
 global.INPUT_SPECIAL = Symbol \input-special
+global.INPUT_RAW_X   = Symbol \input-raw-x
+global.INPUT_RAW_Y   = Symbol \input-raw-y
 
 
 #

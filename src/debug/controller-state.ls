@@ -23,6 +23,7 @@ export class ControllerState implements Drawing
     { flip, flop } = @flipflopper.trigger-state
 
     input-vel = [ input-state.x, input-state.y ]
+    debug-vel = [ input-state.raw-x, input-state.raw-y ]
 
     @box-at [x - 80, y - 20], trigger-size, \grey
     @box-at [x + 80, y - 20], trigger-size, \grey
@@ -32,19 +33,19 @@ export class ControllerState implements Drawing
     @box-at [x - 80, y + 35], [25 25], state-color flip.ignore
     @box-at [x + 80, y + 35], [25 25], state-color flop.ignore
 
+    @box-at [x - 65, y + 70], [55 25], if input-state.fire    then \yellow else \#333
+    @box-at [x + 0,  y + 70], [50 25], if input-state.super   then \yellow else \#333
+    @box-at [x + 65, y + 70], [55 25], if input-state.special then \yellow else \#333
+
     @ctx.begin-path!
     @ctx.arc x, y, 50, tau/2, tau
     @ctx.line-to x, y + 50
     @ctx.close-path!
     @ctx.stroke!
 
-    @ctx.fill-style = \red
-    @ctx.begin-path!
-    @ctx.arc x + 50 * input-vel.0, y - 50 * input-vel.1, 6, 0, tau
+    @circle [x + 50 * input-vel.0, y - 50 * input-vel.1], 6, \red
+    @circle [x + 50 * debug-vel.0, y - 50 * debug-vel.1], 6, \white
+
     @ctx.close-path!
     @ctx.fill!
-
-    @box-at [x - 65, y + 70], [55 25], if input-state.fire    then \yellow else \#333
-    @box-at [x + 0,  y + 70], [50 25], if input-state.super   then \yellow else \#333
-    @box-at [x + 65, y + 70], [55 25], if input-state.special then \yellow else \#333
 

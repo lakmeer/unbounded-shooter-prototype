@@ -12,6 +12,7 @@ require \./global
 { FlipFlopper } = require \./flipflopper
 { DebugVis }    = require \./debug
 { Blitter }     = require \./blitter
+{ Sprite }      = require \./sprite
 { Input }       = require \./input
 { Tween }       = require \./tween
 
@@ -70,7 +71,7 @@ shoot = ->
 # Shared Gamestate
 
 global.game-state =
-  camera-zoom: 1
+  camera-zoom: 0.3
   camera-pos: [0 0]
 
   player:
@@ -88,7 +89,6 @@ global.game-state =
   fire-mode: FIRE_MODE_ALTERNATE
   shoot-alternate: no
   fire-render-alternate: no
-  target-pos: [0 500]
   player-bullets: []
 
   input-state:
@@ -107,23 +107,34 @@ global.game-state =
     mouse-x: 0    # POINTERS
     mouse-y: 0
 
+  targets: []
+
+
+Target =
+  create: (pos, vel, health) ->
+    pos: pos
+    vel: vel
+    health: health
+    alive: yes
+
+  damage: (target, amount) ->
+    target.health -= amount
+    target.alive = target.health <= 0
+
+
+game-state.targets.push Target.create [-200 600], [0 0], 100
+game-state.targets.push Target.create [-100 550], [0 0], 100
+game-state.targets.push Target.create    [0 500], [0 0], 100
+game-state.targets.push Target.create  [100 550], [0 0], 100
+game-state.targets.push Target.create  [200 600], [0 0], 100
+
+
 
 #
 # RENDER
 #
 
-Sprite = (src, [ width, height ], frames) ->
-  image = new Image
-  image.width  = width * frames
-  image.height = height
-  image.src    = src
-  index: 0
-  width: width
-  height: height
-  image: image
-  frames: frames
-
-player-sprite = Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
+player-sprite = new Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
 player-sprite-size = [ 70 80 ]
 
 render = (Δt, t) ->
@@ -141,7 +152,8 @@ render = (Δt, t) ->
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
 
-  main-canvas.rect @target-pos, [90 90], color: \blue
+  for target in @targets
+    main-canvas.dntri target.pos, [90 90], color: \blue
 
   len = random-range 5, 50
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
@@ -224,7 +236,8 @@ update = (Δt, t) ->
   @input-state.x = normal-vec.0
   @input-state.y = normal-vec.1
 
-  player-vel = input-vec `v2.scale` max-speed
+  player-vel = normal-vec `v2.scale` max-speed
+
   @player.pos.0 += player-vel.0 * Δt
   @player.pos.1 += player-vel.1 * Δt
 
@@ -232,7 +245,9 @@ update = (Δt, t) ->
   # Travel forward inexorably
 
   @player.pos.1 += auto-travel-speed * Δt
-  @target-pos.1 += auto-travel-speed * Δt
+
+  for target in @targets
+    target.pos.1 += auto-travel-speed * Δt
 
 
   #

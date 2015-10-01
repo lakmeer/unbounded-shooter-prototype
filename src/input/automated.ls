@@ -10,7 +10,8 @@
 
 export class AutomatedController
 
-  limit = -> max -2, min 2, it
+  radius = 1.5
+  limit = -> max -1.5, min 1.5, it
 
   (@callback = id) ->
     @state =
@@ -22,8 +23,8 @@ export class AutomatedController
 
   update: (Δt, t) ->
     t = 2*t
-    @proxy-event INPUT_X, limit (sin t) #+ (sin -2*t)
-    @proxy-event INPUT_Y, limit (cos t) #+ (cos 2*t)
-    @proxy-event INPUT_RAW_X, limit (sin t) * 2 #+ (sin -2*t)
-    @proxy-event INPUT_RAW_Y, limit (cos t) * 2#+ (cos 2*t)
+    @proxy-event INPUT_X, limit sin t
+    @proxy-event INPUT_Y, limit cos t
+    @proxy-event INPUT_RAW_X, limit (sin t) * radius
+    @proxy-event INPUT_RAW_Y, limit (cos t) * radius
 

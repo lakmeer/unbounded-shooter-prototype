@@ -24,7 +24,7 @@ export class Input
     @auto     = new AutomatedController @push-event
 
   update: (Δt, t) ->
-    @auto.update     Δt, t
+    #@auto.update     Δt, t
     @keyboard.update Δt, t
     @gamepad.update  Δt, t
 

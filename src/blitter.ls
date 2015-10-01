@@ -24,10 +24,10 @@ export class Blitter
     | MODE_ADD    => \lighten
     | otherwise  => \source-over
 
-  local-grid-size      = 500
+  local-grid-size      = 1000
   local-grid-fidelity  = 100
-  camera-frustrum-size = [ 500, 750 ]
   camera-aspect        = 1.5
+  camera-frustrum-size = [ 1000, 1000 * camera-aspect ]
 
   ->
     @canvas = document.create-element \canvas
@@ -42,17 +42,15 @@ export class Blitter
       @w = @canvas.width  = size.0
       @h = @canvas.height = size.0 * camera-aspect
 
-    #log window.inner-width, window.inner-height, @w, @h
-
     @wf = @w / camera-frustrum-size.0
     @hf = @h / camera-frustrum-size.1
 
-  translate-pos: ([x, y]) ->
-    [ @w/2 + (x - game-state.camera-pos.0) * @wf,
-      @h/2 - (y - game-state.camera-pos.1) * @hf ]
+  translate-pos: ([x, y], z = game-state.camera-zoom) ->
+    [ @w/2 + (x - game-state.camera-pos.0) * @wf * z,
+      @h/2 - (y - game-state.camera-pos.1) * @hf * z]
 
-  translate-size: ([w, h]) ->
-    [ w * @wf, h * @hf ]
+  translate-size: ([w, h], z = game-state.camera-zoom) ->
+    [ w * @wf * z, h * @hf * z ]
 
   circle: (pos, radius, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
     [x, y] = @translate-pos pos
@@ -72,6 +70,21 @@ export class Blitter
     @ctx.global-alpha = alpha
     @ctx.fill-style = color
     @ctx.fill-rect x - w/2, y - h/2, w, h
+
+  stroke-rect: (pos, size, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
+    [x, y] = @translate-pos pos
+    [w, h] = @translate-size size
+    @ctx.global-composite-operation = mode-to-operation mode
+    @ctx.global-alpha = alpha
+    @ctx.stroke-style = color
+    @ctx.begin-path!
+    @ctx.move-to x - w/2, y - w/2
+    @ctx.line-to x + w/2, y - w/2
+    @ctx.line-to x + w/2, y + h/2
+    @ctx.line-to x - w/2, y + h/2
+    @ctx.line-to x - w/2, y - w/2
+    @ctx.close-path!
+    @ctx.stroke!
 
   line: (start, end) ->
     @ctx.stroke-style = \white
@@ -143,13 +156,18 @@ export class Blitter
     [cx, cy] = game-state.camera-pos
     nx = cx - cx % local-grid-fidelity
     ny = cy - cy % local-grid-fidelity
-    lgs = local-grid-size/2
+    lgs-x = camera-frustrum-size.0/game-state.camera-zoom
+    lgs-y = camera-frustrum-size.1/game-state.camera-zoom
+
+    @stroke-rect game-state.camera-pos, camera-frustrum-size, color: \yellow
+
+    @ctx.stroke-style = \#0f0
     @ctx.begin-path!
     @ctx.global-alpha = 0.4
-    for i from nx - lgs to nx + lgs by local-grid-fidelity
-      @_line [i, cy - lgs], [i, cy + lgs]
-    for i from ny - lgs til ny + lgs by local-grid-fidelity
-      @_line [cx - lgs, i + local-grid-fidelity], [cx + lgs, i + local-grid-fidelity]
+    for i from nx - lgs-x to nx + lgs-x by local-grid-fidelity
+      @_line [i, cy - lgs-y], [i, cy + lgs-y]
+    for i from ny - lgs-y til ny + lgs-y by local-grid-fidelity
+      @_line [cx - lgs-x, i + local-grid-fidelity], [cx + lgs-x, i + local-grid-fidelity]
     @ctx.close-path!
     @ctx.stroke!
 

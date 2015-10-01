@@ -56,10 +56,10 @@ shoot = ->
 
   else
     if game-state.shoot-alternate
-      left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
+      left = game-state.player.pos `v2.add` [dual-fire-separation/-2 50]
       game-state.player-bullets.push new Bullet left, colors[game-state.player.color]
     else
-      right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
+      right = game-state.player.pos `v2.add` [dual-fire-separation/+2 50]
       game-state.player-bullets.push new Bullet right, colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
 
@@ -107,25 +107,47 @@ global.game-state =
   targets: []
 
 
-Target =
-  create: (pos, vel, color, health) ->
-    pos: pos
-    vel: vel
-    health: health
-    alive: yes
-    color: color
-    radius: hit-radius
+class Target1
+  (pos, color) ->
+    @pos    = [ pos.0, pos.1 ]
+    @vel    = [0 0]
+    @size   = [90 90]
+    @health = 100
+    @alive  = yes
+    @color  = color
+    @radius = 30
 
   damage: (target, amount) ->
-    target.health -= amount
-    target.alive = target.health <= 0
+    @health -= amount
+    @alive = target.health <= 0
+
+  draw: (canvas) ->
+    canvas.dntri @pos, @size, color: rgb @color
+    canvas.stroke-circle @pos, @radius, color: \white
+
+  update: (Δt) ->
+
+class Target2 extends Target1
+  (pos, color) ->
+    super ...
+    @size   = [150 150]
+    @health = 200
+    @radius = 50
+
+class Target3 extends Target1
+  (pos, color) ->
+    super ...
+    @size   = [300 300]
+    @health = 300
+    @radius = 90
 
 
-game-state.targets.push Target.create [-300 600], [0 0], [1 0 0], 100
-game-state.targets.push Target.create [-150 550], [0 0], [1 1 0], 100
-game-state.targets.push Target.create    [0 500], [0 0], [0 1 0], 100
-game-state.targets.push Target.create  [150 550], [0 0], [0 1 1], 100
-game-state.targets.push Target.create  [300 600], [0 0], [0 0 1], 100
+game-state.targets.push new Target1 [-300 600], [1 0 0], 100
+game-state.targets.push new Target2 [-150 550], [1 1 0], 100
+game-state.targets.push new Target1 [0 500],    [0 1 0], 100
+game-state.targets.push new Target2 [150 550],  [0 1 1], 100
+game-state.targets.push new Target1 [300 600],  [0 0 1], 100
+game-state.targets.push new Target2 [0 750],    [1 0 1], 100
 
 
 
@@ -152,8 +174,7 @@ render = (Δt, t) ->
   main-canvas.draw-local-grid!
 
   for target in @targets
-    main-canvas.dntri target.pos, [90 90], color: rgb target.color
-    main-canvas.stroke-circle target.pos, target.radius, color: \white
+    target.draw main-canvas
 
   len = random-range 5, 50
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
@@ -296,17 +317,27 @@ update = (Δt, t) ->
 
 
   # Check collisions
+  color-sum = (color) ->
+    color.0 + color.1 + color.2
 
   @targets .= filter (target, i) ~>
     for bullet in @player-bullets
       dist = (target.pos `v2.dist` bullet.pos)
-      if dist <= hit-radius
-        log i
-        diff = [
-          target.color.0 - bullet.color.0,
-          target.color.1 - bullet.color.1,
-          target.color.2 - bullet.color.2
+      if dist <= (target.radius + bullet.radius)
+
+        target-value = color-sum target.color
+        bullet-value = color-sum bullet.color
+
+        additive-bonus = color-sum [
+          target.color.0 * bullet.color.0,
+          target.color.1 * bullet.color.1,
+          target.color.2 * bullet.color.2
         ]
+
+        damage-bonus = additive-bonus/target-value * bullet-value
+        damage = (1 + damage-bonus ) * 1
+
+        log damage, damage * bullet.power
 
         bullet.life = 0
         # @Target.damage target, bullet.power

@@ -15,10 +15,10 @@ require \./global
 { Sprite }      = require \./sprite
 { Input }       = require \./input
 { Tween }       = require \./tween
+{ Bullet, BlendBullet } = require \./bullet
 
 Ease   = require \./ease
 Timer  = require \./timer
-Bullet = require \./bullet
 
 { lerp-color, diamond, rotation-to-color, rotation-to-sprite-index } = require \./common
 
@@ -34,6 +34,7 @@ dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
 flip-flop-time         = 0.2
 rotation-history-limit = 200
+hit-radius             = 25
 
 
 #
@@ -50,20 +51,16 @@ debug-vis    = new DebugVis flipflopper
 
 shoot = ->
   if game-state.fire-mode is FIRE_MODE_BLEND
-    left  = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-    mid   = game-state.player.pos `v2.add` [0 170]
-    right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-    game-state.player-bullets.push Bullet.create left,  2000, rgb colors[game-state.player.color - 1]
-    game-state.player-bullets.push Bullet.create mid,   2000, rgb colors[game-state.player.color + 0]
-    game-state.player-bullets.push Bullet.create right, 2000, rgb colors[game-state.player.color + 1]
+    mid = game-state.player.pos `v2.add` [0 170]
+    game-state.player-bullets.push new BlendBullet mid, colors[game-state.player.color + 0]
 
   else
     if game-state.shoot-alternate
       left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-      game-state.player-bullets.push Bullet.create left, 3000, rgb colors[game-state.player.color]
+      game-state.player-bullets.push new Bullet left, colors[game-state.player.color]
     else
       right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-      game-state.player-bullets.push Bullet.create right, 3000, rgb colors[game-state.player.color]
+      game-state.player-bullets.push new Bullet right, colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
 
 
@@ -71,7 +68,7 @@ shoot = ->
 # Shared Gamestate
 
 global.game-state =
-  camera-zoom: 0.3
+  camera-zoom: 0.7
   camera-pos: [0 0]
 
   player:
@@ -111,22 +108,24 @@ global.game-state =
 
 
 Target =
-  create: (pos, vel, health) ->
+  create: (pos, vel, color, health) ->
     pos: pos
     vel: vel
     health: health
     alive: yes
+    color: color
+    radius: hit-radius
 
   damage: (target, amount) ->
     target.health -= amount
     target.alive = target.health <= 0
 
 
-game-state.targets.push Target.create [-200 600], [0 0], 100
-game-state.targets.push Target.create [-100 550], [0 0], 100
-game-state.targets.push Target.create    [0 500], [0 0], 100
-game-state.targets.push Target.create  [100 550], [0 0], 100
-game-state.targets.push Target.create  [200 600], [0 0], 100
+game-state.targets.push Target.create [-300 600], [0 0], [1 0 0], 100
+game-state.targets.push Target.create [-150 550], [0 0], [1 1 0], 100
+game-state.targets.push Target.create    [0 500], [0 0], [0 1 0], 100
+game-state.targets.push Target.create  [150 550], [0 0], [0 1 1], 100
+game-state.targets.push Target.create  [300 600], [0 0], [0 0 1], 100
 
 
 
@@ -153,7 +152,8 @@ render = (Δt, t) ->
   main-canvas.draw-local-grid!
 
   for target in @targets
-    main-canvas.dntri target.pos, [90 90], color: \blue
+    main-canvas.dntri target.pos, [90 90], color: rgb target.color
+    main-canvas.stroke-circle target.pos, target.radius, color: \white
 
   len = random-range 5, 50
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
@@ -161,7 +161,10 @@ render = (Δt, t) ->
   main-canvas.dntri @player.pos `v2.add` [0 -28 - len/2], [20 len], color: player-color
 
   for bullet in @player-bullets
-    Bullet.draw main-canvas, bullet
+    bullet.draw main-canvas
+    #main-canvas.circle bullet.pos, hit-radius, color: rgb colors[@player.color]
+    main-canvas.stroke-circle bullet.pos, bullet.radius, color: \white
+
 
   # Debug rendering
   debug-vis.clear!
@@ -284,10 +287,34 @@ update = (Δt, t) ->
 
   @fire-mode = new-fire-mode
 
-  @player-bullets .= filter (bullet) ->
-    bullet.pos.1 += bullet.vel.1 * Δt
-    bullet.life -= bullet.Δlife * Δt
-    bullet.life > 0
+
+  #
+  # Move bullets
+  #
+
+  @player-bullets .= filter (.update Δt)
+
+
+  # Check collisions
+
+  @targets .= filter (target, i) ~>
+    for bullet in @player-bullets
+      dist = (target.pos `v2.dist` bullet.pos)
+      if dist <= hit-radius
+        log i
+        diff = [
+          target.color.0 - bullet.color.0,
+          target.color.1 - bullet.color.1,
+          target.color.2 - bullet.color.2
+        ]
+
+        bullet.life = 0
+        # @Target.damage target, bullet.power
+
+    target.health >= 0
+
+
+
 
 
   #

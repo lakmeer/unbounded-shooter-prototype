@@ -63,6 +63,17 @@ export class Blitter
     @ctx.close-path!
     @ctx.fill!
 
+  stroke-circle: (pos, radius, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
+    [x, y] = @translate-pos pos
+    [ r ]  = @translate-size [ radius ]  # TODO: This, but better
+    @ctx.global-composite-operation = mode-to-operation mode
+    @ctx.global-alpha = alpha
+    @ctx.stroke-style = color
+    @ctx.begin-path!
+    @ctx.arc x, y, r, 0, tau
+    @ctx.close-path!
+    @ctx.stroke!
+
   rect: (pos, size, { color=\white, alpha=1, mode=MODE_NORMAL }) ->
     [x, y] = @translate-pos pos
     [w, h] = @translate-size size

@@ -16,6 +16,7 @@ require \./global
 { Input }       = require \./input
 { Tween }       = require \./tween
 { Bullet, BlendBullet } = require \./bullet
+{ Target1, Target2, Target3 } = require \./target
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -105,41 +106,6 @@ global.game-state =
     mouse-y: 0
 
   targets: []
-
-
-class Target1
-  (pos, color) ->
-    @pos    = [ pos.0, pos.1 ]
-    @vel    = [0 0]
-    @size   = [90 90]
-    @health = 100
-    @alive  = yes
-    @color  = color
-    @radius = 30
-
-  damage: (target, amount) ->
-    @health -= amount
-    @alive = target.health <= 0
-
-  draw: (canvas) ->
-    canvas.dntri @pos, @size, color: rgb @color
-    canvas.stroke-circle @pos, @radius, color: \white
-
-  update: (Δt) ->
-
-class Target2 extends Target1
-  (pos, color) ->
-    super ...
-    @size   = [150 150]
-    @health = 200
-    @radius = 50
-
-class Target3 extends Target1
-  (pos, color) ->
-    super ...
-    @size   = [300 300]
-    @health = 300
-    @radius = 90
 
 
 game-state.targets.push new Target1 [-300 600], [1 0 0], 100
@@ -335,17 +301,12 @@ update = (Δt, t) ->
         ]
 
         damage-bonus = additive-bonus/target-value * bullet-value
-        damage = (1 + damage-bonus ) * 1
+        damage = (1 + damage-bonus) * bullet.power
 
-        log damage, damage * bullet.power
-
+        target.damage damage
         bullet.life = 0
-        # @Target.damage target, bullet.power
 
     target.health >= 0
-
-
-
 
 
   #

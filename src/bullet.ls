@@ -18,7 +18,7 @@ export class Bullet
     @color = color
     @alpha = 1 #.6
     @radius = 20
-    @power = 20
+    @power = 5
 
   draw: (canvas) ->
     top-size = [ @size.0, @size.1 * 1/4 ]
@@ -42,7 +42,7 @@ export class BlendBullet extends Bullet
     super ...
     @vel.1 = 2000
     @radius = 40
-    @power = 50
+    @power = 20
     @size = [120 350]
 
   draw: (canvas) ->

@@ -94,6 +94,7 @@ export class KeyboardController
     | KEY_D  => @simulate-trigger  1, dir, 0.5
     | KEY_S  => @proxy-event INPUT_FIRE,  dir
     | KEY_X  => @proxy-event INPUT_FIRE,  dir
+    | KEY_W  => @proxy-event INPUT_SUPER, dir
     | UP     => @cursor-velocity-y \up,    dir
     | DOWN   => @cursor-velocity-y \down,  dir
     | LEFT   => @cursor-velocity-x \left,  dir

@@ -15,7 +15,7 @@ require \./global
 { Sprite }      = require \./sprite
 { Input }       = require \./input
 { Tween }       = require \./tween
-{ Bullet, BlendBullet } = require \./bullet
+{ Bullet, BlendBullet, SuperBullet } = require \./bullet
 { Target1, Target2, Target3 } = require \./target
 
 Ease   = require \./ease
@@ -64,6 +64,9 @@ shoot = ->
       game-state.player-bullets.push new Bullet right, colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
 
+super-shoot = ->
+  mid = game-state.player.pos `v2.add` [0 170]
+  game-state.player-bullets.push new SuperBullet mid, [1 1 1]
 
 
 # Shared Gamestate
@@ -194,6 +197,10 @@ update = (Δt, t) ->
     | INPUT_PAUSE =>
       if value
         frame-driver.toggle!
+
+    | INPUT_SUPER =>
+      if value
+        super-shoot!
 
     | INPUT_FLIP =>
       if @input-state.flip < value

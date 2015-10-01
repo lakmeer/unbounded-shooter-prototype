@@ -43,20 +43,17 @@ export class BlendBullet extends Bullet
     @vel.1 = 2000
     @radius = 40
     @power = 20
+    @life = 2
     @size = [120 350]
-
-  draw: (canvas) ->
-    top-size = [ @size.0, @size.1 * 1/4 ]
-    btm-size = [ @size.0, @size.1 * 3/4 ]
-    top-pos  = [ @pos.0, @pos.1 + @size.1 * 3/8 - @size.1 * 1/4 ]
-    btm-pos  = [ @pos.0, @pos.1 - @size.1 * 1/8 - @size.1 * 1/4 ]
-    canvas.uptri top-pos, top-size, color: (rgb @color), alpha: @alpha * @life, mode: MODE_ADD
-    canvas.dntri btm-pos, btm-size, color: (rgb @color), alpha: @alpha * @life, mode: MODE_ADD
-
 
 
 export class SuperBullet extends Bullet
   ->
     super ...
+    @vel.1 = 1000
+    @radius = 60
+    @power = 50
+    @size = [160 500]
+    @life = 3
 
 

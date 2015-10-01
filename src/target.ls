@@ -20,9 +20,9 @@ export class Target1
     @color  = color
     @radius = 30
 
-  damage: (target, amount) ->
+  damage: (amount) ->
     @health -= amount
-    @alive = target.health <= 0
+    @alive = @health <= 0
 
   draw: (canvas) ->
     canvas.dntri @pos, @size, color: rgb @color
@@ -39,7 +39,7 @@ export class Target2 extends Target1
   (pos, color) ->
     super ...
     @size   = [150 150]
-    @health = 200
+    @health = 250
     @radius = 50
 
 
@@ -51,6 +51,6 @@ export class Target3 extends Target1
   (pos, color) ->
     super ...
     @size   = [300 300]
-    @health = 300
+    @health = 500
     @radius = 90
 

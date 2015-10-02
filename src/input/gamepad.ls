@@ -32,16 +32,16 @@ const RIGHT_STICK_Y     = 3
 # Key layout (xbox)
 
 key-bindings = new Map
-  ..set BUTTON_B,      INPUT_FIRE
-  ..set BUTTON_A,      INPUT_SUPER
-  ..set BUTTON_Y,      INPUT_SPECIAL
+  ..set BUTTON_A,      INPUT_FIRE
+  ..set BUTTON_Y,      INPUT_SUPER
+  ..set BUTTON_B,      INPUT_SPECIAL
   ..set LEFT_TRIGGER,  INPUT_FLIP
   ..set RIGHT_TRIGGER, INPUT_FLOP
   ..set BUTTON_START,  INPUT_PAUSE
 
 axis-bindings = new Map
-  ..set LEFT_STICK_X,  INPUT_X
-  ..set LEFT_STICK_Y,  INPUT_Y
+  ..set LEFT_STICK_X,  INPUT_RAW_X
+  ..set LEFT_STICK_Y,  INPUT_RAW_Y
 
 
 #
@@ -72,6 +72,9 @@ export class GamepadController
       for raw, which in gamepad.axes
         dead  = -GAMEPAD_AXIS_DEADZONE < raw < GAMEPAD_AXIS_DEADZONE
         value = if dead then 0 else raw
+
+        if which is LEFT_STICK_Y
+          value *= -1
 
         if value isnt @state.axes[which]
           @proxy-event value, axis-bindings.get which

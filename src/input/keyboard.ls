@@ -94,6 +94,7 @@ export class KeyboardController
     | KEY_D  => @simulate-trigger  1, dir, 0.5
     | KEY_S  => @proxy-event INPUT_FIRE,  dir
     | KEY_X  => @proxy-event INPUT_FIRE,  dir
+    | KEY_W  => @proxy-event INPUT_SUPER, dir
     | UP     => @cursor-velocity-y \up,    dir
     | DOWN   => @cursor-velocity-y \down,  dir
     | LEFT   => @cursor-velocity-x \left,  dir
@@ -102,11 +103,15 @@ export class KeyboardController
 
   cursor-velocity-x: (key, dir) ->
     @cursor-state[key] = dir
-    @proxy-event INPUT_X, @cursor-state.right - @cursor-state.left
+    value = @cursor-state.right - @cursor-state.left
+    @proxy-event INPUT_RAW_X, value
+    @proxy-event INPUT_X, value
 
   cursor-velocity-y: (key, dir) ->
     @cursor-state[key] = dir
-    @proxy-event INPUT_Y, @cursor-state.up - @cursor-state.down
+    value = @cursor-state.up - @cursor-state.down
+    @proxy-event INPUT_RAW_Y, value
+    @proxy-event INPUT_Y, value
 
   simulate: (trigger, target, dir) ->
     direction = if dir then TRIGGER_DIR_PRESS else TRIGGER_DIR_RELEASE

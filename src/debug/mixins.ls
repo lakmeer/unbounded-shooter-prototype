@@ -1,4 +1,9 @@
 
+# Require
+
+{ id, log, tau } = require \std
+
+
 #
 # Debug visualiser's mixins
 #

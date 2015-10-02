@@ -12,14 +12,16 @@ require \./global
 { FlipFlopper } = require \./flipflopper
 { DebugVis }    = require \./debug
 { Blitter }     = require \./blitter
+{ Sprite }      = require \./sprite
 { Input }       = require \./input
 { Tween }       = require \./tween
+{ Bullet, BlendBullet, SuperBullet } = require \./bullet
+{ Target1, Target2, Target3 } = require \./target
 
 Ease   = require \./ease
 Timer  = require \./timer
-Bullet = require \./bullet
 
-{ lerp-color, rotation-to-color, rotation-to-sprite-index } = require \./common
+{ lerp-color, diamond, rotation-to-color, rotation-to-sprite-index } = require \./common
 
 
 #
@@ -33,6 +35,7 @@ dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
 flip-flop-time         = 0.2
 rotation-history-limit = 200
+hit-radius             = 25
 
 
 #
@@ -49,28 +52,27 @@ debug-vis    = new DebugVis flipflopper
 
 shoot = ->
   if game-state.fire-mode is FIRE_MODE_BLEND
-    left  = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-    mid   = game-state.player.pos `v2.add` [0 170]
-    right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-    game-state.player-bullets.push Bullet.create left,  2000, rgb colors[game-state.player.color - 1]
-    game-state.player-bullets.push Bullet.create mid,   2000, rgb colors[game-state.player.color + 0]
-    game-state.player-bullets.push Bullet.create right, 2000, rgb colors[game-state.player.color + 1]
+    mid = game-state.player.pos `v2.add` [0 170]
+    game-state.player-bullets.push new BlendBullet mid, colors[game-state.player.color + 0]
 
   else
     if game-state.shoot-alternate
-      left = game-state.player.pos `v2.add` [dual-fire-separation/-2 150]
-      game-state.player-bullets.push Bullet.create left, 3000, rgb colors[game-state.player.color]
+      left = game-state.player.pos `v2.add` [dual-fire-separation/-2 50]
+      game-state.player-bullets.push new Bullet left, colors[game-state.player.color]
     else
-      right = game-state.player.pos `v2.add` [dual-fire-separation/+2 150]
-      game-state.player-bullets.push Bullet.create right, 3000, rgb colors[game-state.player.color]
+      right = game-state.player.pos `v2.add` [dual-fire-separation/+2 50]
+      game-state.player-bullets.push new Bullet right, colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
 
+super-shoot = ->
+  mid = game-state.player.pos `v2.add` [0 170]
+  game-state.player-bullets.push new SuperBullet mid, [1 1 1]
 
 
 # Shared Gamestate
 
 global.game-state =
-  camera-zoom: 1
+  camera-zoom: 0.7
   camera-pos: [0 0]
 
   player:
@@ -88,7 +90,6 @@ global.game-state =
   fire-mode: FIRE_MODE_ALTERNATE
   shoot-alternate: no
   fire-render-alternate: no
-  target-pos: [0 500]
   player-bullets: []
 
   input-state:
@@ -102,8 +103,20 @@ global.game-state =
     flop: 0
     x: 0          # JOYSTICKS
     y: 0
+    raw-x: 0      # JOYSTICK DEBUG
+    raw-y: 0
     mouse-x: 0    # POINTERS
     mouse-y: 0
+
+  targets: []
+
+
+game-state.targets.push new Target1 [-300 600], [1 0 0], 100
+game-state.targets.push new Target2 [-150 550], [1 1 0], 100
+game-state.targets.push new Target1 [0 500],    [0 1 0], 100
+game-state.targets.push new Target2 [150 550],  [0 1 1], 100
+game-state.targets.push new Target1 [300 600],  [0 0 1], 100
+game-state.targets.push new Target2 [0 750],    [1 0 1], 100
 
 
 
@@ -111,18 +124,7 @@ global.game-state =
 # RENDER
 #
 
-Sprite = (src, [ width, height ], frames) ->
-  image = new Image
-  image.width  = width * frames
-  image.height = height
-  image.src    = src
-  index: 0
-  width: width
-  height: height
-  image: image
-  frames: frames
-
-player-sprite = Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
+player-sprite = new Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
 player-sprite-size = [ 70 80 ]
 
 render = (Δt, t) ->
@@ -140,7 +142,8 @@ render = (Δt, t) ->
   main-canvas.draw-origin!
   main-canvas.draw-local-grid!
 
-  main-canvas.rect   @target-pos, [90 90], color: \blue
+  for target in @targets
+    target.draw main-canvas
 
   len = random-range 5, 50
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
@@ -148,7 +151,10 @@ render = (Δt, t) ->
   main-canvas.dntri @player.pos `v2.add` [0 -28 - len/2], [20 len], color: player-color
 
   for bullet in @player-bullets
-    Bullet.draw main-canvas, bullet
+    bullet.draw main-canvas
+    #main-canvas.circle bullet.pos, hit-radius, color: rgb colors[@player.color]
+    main-canvas.stroke-circle bullet.pos, bullet.radius, color: \white
+
 
   # Debug rendering
   debug-vis.clear!
@@ -165,7 +171,7 @@ update = (Δt, t) ->
 
   Tween.update-all Δt
   Timer.update-and-carry @timers.auto-fire-timer, Δt
-  input.update Δt  # Debug only - real input controller doesn't need timers
+  input.update Δt, t  # Debug only - real input controller doesn't need timers
 
 
   # Consume input events
@@ -182,12 +188,19 @@ update = (Δt, t) ->
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
 
-    | INPUT_X => @input-state.x = value
-    | INPUT_Y => @input-state.y = value
+    #| INPUT_X => @input-state.x = value
+    #| INPUT_Y => @input-state.y = value
+
+    | INPUT_RAW_X => @input-state.raw-x = value
+    | INPUT_RAW_Y => @input-state.raw-y = value
 
     | INPUT_PAUSE =>
       if value
         frame-driver.toggle!
+
+    | INPUT_SUPER =>
+      if value
+        super-shoot!
 
     | INPUT_FLIP =>
       if @input-state.flip < value
@@ -204,41 +217,34 @@ update = (Δt, t) ->
       @input-state.flop  = value
 
 
-  # Travel forward inexorably
+  # Normalise X/Y input
 
-  @player.pos.1 += auto-travel-speed * Δt
-  @target-pos.1 += auto-travel-speed * Δt
+  input-vec = [ @input-state.raw-x, @input-state.raw-y ]
 
+  normal-vec =
+    if input-vec.1 > 0
+      v2.norm input-vec
+    else
+      θ = Math.atan2 -@input-state.raw-y, Math.abs @input-state.raw-x
+      α = tau/2 - tau/8
+      mag = sin(α) / sin(α - θ)
+      (v2.norm input-vec) `v2.scale` mag
 
-  # Generate input velocity vector
+  @input-state.x = normal-vec.0
+  @input-state.y = normal-vec.1
 
-  left-to-right-vel =
-    if @input-state.left then -1
-    else if @input-state.right then 1
-    else 0
-
-  front-to-back-vel =
-    if @input-state.down then -1
-    else if @input-state.up then 1
-    else 0
-
-  input-vel = [ @input-state.x, @input-state.y ]
-
-
-  # Normalise input velocity or circle (fwd) or diamond (back)
-
-  # if input-vel.1 >= 0
-  #   player-vel = (v2.norm input-vel) `v2.scale` max-speed
-  # else
-  #   player-vel = (diamond input-vel) `v2.scale` max-speed
-
-  player-vel = input-vel `v2.scale` max-speed
-
-
-  # Apply input velocity to player
+  player-vel = normal-vec `v2.scale` max-speed
 
   @player.pos.0 += player-vel.0 * Δt
   @player.pos.1 += player-vel.1 * Δt
+
+
+  # Travel forward inexorably
+
+  @player.pos.1 += auto-travel-speed * Δt
+
+  for target in @targets
+    target.pos.1 += auto-travel-speed * Δt
 
 
   #
@@ -275,10 +281,39 @@ update = (Δt, t) ->
 
   @fire-mode = new-fire-mode
 
-  @player-bullets .= filter (bullet) ->
-    bullet.pos.1 += bullet.vel.1 * Δt
-    bullet.life -= bullet.Δlife * Δt
-    bullet.life > 0
+
+  #
+  # Move bullets
+  #
+
+  @player-bullets .= filter (.update Δt)
+
+
+  # Check collisions
+  color-sum = (color) ->
+    color.0 + color.1 + color.2
+
+  @targets .= filter (target, i) ~>
+    for bullet in @player-bullets
+      dist = (target.pos `v2.dist` bullet.pos)
+      if dist <= (target.radius + bullet.radius)
+
+        target-value = color-sum target.color
+        bullet-value = color-sum bullet.color
+
+        additive-bonus = color-sum [
+          target.color.0 * bullet.color.0,
+          target.color.1 * bullet.color.1,
+          target.color.2 * bullet.color.2
+        ]
+
+        damage-bonus = additive-bonus/target-value * bullet-value
+        damage = (1 + damage-bonus) * bullet.power
+
+        target.damage damage
+        bullet.life = 0
+
+    target.health >= 0
 
 
   #

@@ -15,7 +15,7 @@ export class Target1
     @pos    = [ pos.0, pos.1 ]
     @vel    = [0 0]
     @size   = [90 90]
-    @health = 100
+    @health = 50
     @alive  = yes
     @color  = color
     @radius = 30
@@ -39,7 +39,7 @@ export class Target2 extends Target1
   (pos, color) ->
     super ...
     @size   = [150 150]
-    @health = 250
+    @health = 100
     @radius = 50
 
 
@@ -51,6 +51,6 @@ export class Target3 extends Target1
   (pos, color) ->
     super ...
     @size   = [300 300]
-    @health = 500
+    @health = 200
     @radius = 90
 

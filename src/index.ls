@@ -68,6 +68,41 @@ super-shoot = ->
   mid = game-state.player.pos `v2.add` [0 170]
   game-state.player-bullets.push new SuperBullet mid, [1 1 1]
 
+spawn = ->
+  targets = game-state.targets
+  y = game-state.player.pos.1
+
+  switch floor rnd 3
+  | 0 =>
+    targets.push new Target1 [-300 y + 600], [1 0 0]
+    targets.push new Target2 [-150 y + 550], [1 1 0]
+    targets.push new Target1 [0    y + 500], [0 1 0]
+    targets.push new Target2 [150  y + 550], [0 1 1]
+    targets.push new Target1 [300  y + 600], [0 0 1]
+    targets.push new Target2 [0    y + 750], [1 0 1]
+
+  | 1 =>
+    color = [[1 0 0],[0 1 0],[0 0 1]][floor rnd 3]
+    targets.push new Target1 [-300 y + 600], color
+    targets.push new Target1 [-150 y + 550], color
+    targets.push new Target1 [0    y + 500], color
+    targets.push new Target1 [150  y + 550], color
+    targets.push new Target1 [300  y + 600], color
+    targets.push new Target1 [0    y + 750], color
+    targets.push new Target1 [-300 y + 750], color
+    targets.push new Target1 [-150 y + 700], color
+    targets.push new Target1 [0    y + 650], color
+    targets.push new Target1 [150  y + 700], color
+    targets.push new Target1 [300  y + 750], color
+    targets.push new Target1 [0    y + 900], color
+
+  | 2 =>
+    targets.push new Target2 [-300 y + 600], [1 1 0]
+    targets.push new Target2 [-150 y + 550], [0 1 1]
+    targets.push new Target2 [0    y + 500], [1 0 1]
+    targets.push new Target2 [150  y + 550], [0 1 1]
+    targets.push new Target2 [300  y + 600], [1 1 0]
+
 
 # Shared Gamestate
 
@@ -109,14 +144,6 @@ global.game-state =
     mouse-y: 0
 
   targets: []
-
-
-game-state.targets.push new Target1 [-300 600], [1 0 0], 100
-game-state.targets.push new Target2 [-150 550], [1 1 0], 100
-game-state.targets.push new Target1 [0 500],    [0 1 0], 100
-game-state.targets.push new Target2 [150 550],  [0 1 1], 100
-game-state.targets.push new Target1 [300 600],  [0 0 1], 100
-game-state.targets.push new Target2 [0 750],    [1 0 1], 100
 
 
 
@@ -288,7 +315,6 @@ update = (Δt, t) ->
 
   @player-bullets .= filter (.update Δt)
 
-
   # Check collisions
   color-sum = (color) ->
     color.0 + color.1 + color.2
@@ -311,7 +337,10 @@ update = (Δt, t) ->
         damage = (1 + damage-bonus) * bullet.power
 
         target.damage damage
-        bullet.life = 0
+        bullet.power -= damage
+
+        if bullet.power <= 0
+          bullet.life = 0
 
     target.health >= 0
 
@@ -328,6 +357,14 @@ update = (Δt, t) ->
 
   if @player.pos.0 - @camera-pos.0 > camera-drift-limit
     @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
+
+
+  #
+  # Spawn enemies if necessary
+  #
+
+  if @targets.length is 0
+    spawn!
 
 
 

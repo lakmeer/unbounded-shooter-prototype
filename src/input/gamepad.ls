@@ -74,9 +74,6 @@ export class GamepadController
         value = if dead then 0 else raw
         value = if which is LEFT_STICK_Y then -value else value
 
-        if which is LEFT_STICK_Y
-          value *= -1
-
         if value isnt @state.axes[which]
           @proxy-event value, axis-bindings.get which
           @state.axes[which] = value

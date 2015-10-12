@@ -190,5 +190,5 @@ export class EasyFlipFlopper
 
 
 
-export FlipFlopper = LatchingFlipFlopper
+export FlipFlopper = EasyFlipFlopper
 

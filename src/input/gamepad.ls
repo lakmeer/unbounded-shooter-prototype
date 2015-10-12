@@ -3,6 +3,8 @@
 
 { id, log } = require \std
 
+const NO_BINDING = Symbol \no-binding
+
 
 # Input codes (xbox)
 
@@ -78,8 +80,7 @@ export class GamepadController
     if gamepad
       for button, which in gamepad.buttons
         if button.value isnt @state.buttons[which]
-          log which
-          log key-bindings.get which
+          log 'Gamepad:', which, key-bindings.get which
           @proxy-event button.value, key-bindings.get which
           @state.buttons[which] = button.value
 

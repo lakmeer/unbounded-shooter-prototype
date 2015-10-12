@@ -13,7 +13,7 @@
 export class Target1
   (pos, color) ->
     @pos    = [ pos.0, pos.1 ]
-    @vel    = [0 0]
+    @vel    = [0 -100]
     @size   = [90 90]
     @health = 50
     @alive  = yes
@@ -29,7 +29,8 @@ export class Target1
     canvas.stroke-circle @pos, @radius, color: \white
 
   update: (Δt) ->
-
+    @pos.1 += @vel.1 * Δt
+    return @alive
 
 #
 # Bigger

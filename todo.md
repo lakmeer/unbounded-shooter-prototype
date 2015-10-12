@@ -70,6 +70,7 @@
     thumb proximity, what should the Y button do?
   - Bomb? Reliable standard-issue shmup standby
   - Controller input completionism?
+  - Could be Magenta mode because X and B are hard to push together
 
 
 ### Enemies must be killed by same or different light?
@@ -125,6 +126,8 @@
     - Turn whole world 45° to make binning easier?
   - Basic collision algorithm
   - Segregate world time and program time
+- Input
+  - Fix deadzone so axes don't act independantly
 - World
   - Basic world layout
   - Algorithm that creates sector angles from player max X speed?

@@ -130,8 +130,14 @@ spawn = ->
 # Shared Gamestate
 
 global.game-state =
+
+  world-time: 0
+  Δt: 0
+
   camera-zoom: 0.7
   camera-pos: [0 0]
+
+  time-factor: 0.1
 
   player:
     pos: [0 0]
@@ -172,7 +178,6 @@ global.game-state =
   targets: []
 
 
-
 #
 # RENDER
 #
@@ -199,6 +204,7 @@ render = (Δt, t) ->
     target.draw main-canvas
 
   len = random-range 5, 50
+
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
   main-canvas.sprite player-sprite, @player.pos, player-sprite-size
   main-canvas.dntri @player.pos `v2.add` [0 -28 - len/2], [20 len], color: player-color
@@ -207,7 +213,6 @@ render = (Δt, t) ->
     bullet.draw main-canvas
     #main-canvas.circle bullet.pos, hit-radius, color: rgb colors[@player.color]
     main-canvas.stroke-circle bullet.pos, bullet.radius, color: \white
-
 
   # Debug rendering
   debug-vis.clear!
@@ -220,11 +225,18 @@ render = (Δt, t) ->
 
 update = (Δt, t) ->
 
+  # Update time
+
+  @Δt = Δt * if EXP_STRICT_TIME_BINDING then @time-factor else 1
+  @world-time += @Δt
+  @system-time += Δt
+
+
   # Update timers
 
-  Tween.update-all Δt
-  Timer.update-and-carry @timers.auto-fire-timer, Δt
-  input.update Δt, t  # Debug only - real input controller doesn't need timers
+  Tween.update-all @Δt
+  Timer.update-and-carry @timers.auto-fire-timer, @Δt
+  input.update @Δt, @world-time  # Debug only - real input controller doesn't need timers
 
 
   # Consume input events
@@ -249,7 +261,6 @@ update = (Δt, t) ->
           shoot-by-input!
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
-
 
     #| INPUT_X => @input-state.x = value
     #| INPUT_Y => @input-state.y = value
@@ -298,16 +309,21 @@ update = (Δt, t) ->
 
   player-vel = normal-vec `v2.scale` max-speed
 
-  @player.pos.0 += player-vel.0 * Δt
-  @player.pos.1 += player-vel.1 * Δt
+  @player.pos.0 += player-vel.0 * @Δt
+
+  if not EXP_STRICT_TIME_BINDING
+    @player.pos.1 += player-vel.1 * @Δt
 
 
   # Travel forward inexorably
 
-  @player.pos.1 += auto-travel-speed * Δt
+  if EXP_STRICT_TIME_BINDING
+    @time-factor = 0.5 + normal-vec.1 / 2
+
+  @player.pos.1 += auto-travel-speed * @Δt
 
   for target in @targets
-    target.pos.1 += auto-travel-speed * Δt
+    target.pos.1 += auto-travel-speed * @Δt
 
 
   #
@@ -325,47 +341,48 @@ update = (Δt, t) ->
   # Firing
   #
 
-  if game-state.player.color % 3 is 1
-    new-fire-mode = FIRE_MODE_BLEND
-    fire-timer-factor = 2
-  else
-    new-fire-mode = FIRE_MODE_ALTERNATE
-    fire-timer-factor = 1
-
-  @timers.auto-fire-timer.target = auto-fire-speed * fire-timer-factor
-
   if EXP_FIRE_MODE_IKARUGA
+    if game-state.player.color % 3 is 1
+      new-fire-mode = FIRE_MODE_BLEND
+      fire-timer-factor = 2
+    else
+      new-fire-mode = FIRE_MODE_ALTERNATE
+      fire-timer-factor = 1
+
+    if @fire-mode isnt new-fire-mode
+      if new-fire-mode is FIRE_MODE_ALTERNATE
+        Timer.reset @timers.auto-fire-timer
+
+    @timers.auto-fire-timer.target = auto-fire-speed * fire-timer-factor
+    @fire-mode = new-fire-mode
+
     if new-fire-mode is FIRE_MODE_ALTERNATE
       if @timers.auto-fire-timer.elapsed and @input-state.fire
           shoot-by-rotation!
 
-  else
-    if new-fire-mode is FIRE_MODE_ALTERNATE
+  if EXP_FIRE_MODE_RADIANT
+    if @fire-mode is FIRE_MODE_ALTERNATE
       if @timers.auto-fire-timer.elapsed and (@input-state.red or @input-state.blue or @input-state.green)
         shoot-by-input!
-
-  if @fire-mode isnt new-fire-mode
-    if new-fire-mode is FIRE_MODE_ALTERNATE
-      Timer.reset @timers.auto-fire-timer
-
-  @fire-mode = new-fire-mode
 
 
   #
   # Move bullets
   #
 
-  @player-bullets .= filter (.update Δt)
+  @player-bullets .= filter (.update @Δt).bind this
 
   # Check collisions
   color-sum = (color) ->
     color.0 + color.1 + color.2
 
   @targets .= filter (target, i) ~>
+    target.update @Δt
+
     for bullet in @player-bullets
       dist = (target.pos `v2.dist` bullet.pos)
-      if dist <= (target.radius + bullet.radius)
 
+      if dist <= (target.radius + bullet.radius)
         target-value = color-sum target.color
         bullet-value = color-sum bullet.color
 

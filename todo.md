@@ -71,8 +71,6 @@
   - Bomb? Reliable standard-issue shmup standby
   - Controller input completionism?
 
-- Firing directionality with second joystick?
-  - It's not a GW clone but that might be interesting
 
 ### Enemies must be killed by same or different light?
 
@@ -126,6 +124,7 @@
   - Sector binning
     - Turn whole world 45° to make binning easier?
   - Basic collision algorithm
+  - Segregate world time and program time
 - World
   - Basic world layout
   - Algorithm that creates sector angles from player max X speed?
@@ -150,6 +149,7 @@
 - Somersault
 - Backwards zap
 - Directional fire with second input
+- Magnet
 
 - Switches
   - Triggers flipflop / triggers rolldodge

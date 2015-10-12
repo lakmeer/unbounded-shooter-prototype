@@ -31,7 +31,7 @@ const RIGHT_STICK_Y     = 3
 
 # Key layout (xbox)
 
-key-bindings = new Map
+flipflop-binding = new Map
   ..set BUTTON_A,      INPUT_FIRE
   ..set BUTTON_Y,      INPUT_SUPER
   ..set BUTTON_B,      INPUT_SPECIAL
@@ -39,9 +39,23 @@ key-bindings = new Map
   ..set RIGHT_TRIGGER, INPUT_FLOP
   ..set BUTTON_START,  INPUT_PAUSE
 
+radiant-binding = new Map
+  ..set BUTTON_A,      INPUT_GREEN
+  ..set BUTTON_X,      INPUT_BLUE
+  ..set BUTTON_B,      INPUT_RED
+  ..set LEFT_TRIGGER,  INPUT_ROLL_LEFT
+  ..set RIGHT_TRIGGER, INPUT_ROLL_RIGHT
+  ..set BUTTON_START,  INPUT_PAUSE
+
 axis-bindings = new Map
   ..set LEFT_STICK_X,  INPUT_RAW_X
   ..set LEFT_STICK_Y,  INPUT_RAW_Y
+
+key-bindings =
+  if EXP_FIRE_MODE_RADIANT
+    radiant-binding
+  else
+    flipflop-binding
 
 
 #

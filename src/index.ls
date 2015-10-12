@@ -50,7 +50,7 @@ debug-vis    = new DebugVis flipflopper
 
 # Misc functions
 
-shoot = ->
+shoot-by-rotation = ->
   if game-state.fire-mode is FIRE_MODE_BLEND
     mid = game-state.player.pos `v2.add` [0 170]
     game-state.player-bullets.push new BlendBullet mid, colors[game-state.player.color + 0]
@@ -63,6 +63,29 @@ shoot = ->
       right = game-state.player.pos `v2.add` [dual-fire-separation/+2 50]
       game-state.player-bullets.push new Bullet right, colors[game-state.player.color]
     game-state.shoot-alternate = not game-state.shoot-alternate
+
+shoot-by-input = ->
+  color = [
+    if game-state.input-state.red   then 1 else 0
+    if game-state.input-state.green then 1 else 0
+    if game-state.input-state.blue  then 1 else 0
+  ]
+
+  if game-state.shoot-alternate
+    left = game-state.player.pos `v2.add` [dual-fire-separation/-2 50]
+    game-state.player-bullets.push new Bullet left, color
+  else
+    right = game-state.player.pos `v2.add` [dual-fire-separation/+2 50]
+    game-state.player-bullets.push new Bullet right, color
+  game-state.shoot-alternate = not game-state.shoot-alternate
+
+
+get-fire-type-from-signal = ->
+  switch it
+  | INPUT_RED   => \red
+  | INPUT_GREEN => \green
+  | INPUT_BLUE  => \blue
+  | otherwise => log "Can't recognise Radiant fire mode:", it
 
 super-shoot = ->
   mid = game-state.player.pos `v2.add` [0 170]
@@ -133,6 +156,9 @@ global.game-state =
     left:  off
     right: off
     fire:  off
+    red:   off
+    green: off
+    blue:  off
     pause: off
     flip: 0       # TRIGGERS
     flop: 0
@@ -211,9 +237,19 @@ update = (Δt, t) ->
       if @input-state.fire isnt value
         @input-state.fire = value
         if value
-          shoot!
+          shoot-by-rotation!
           if @fire-mode is FIRE_MODE_ALTERNATE
             Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
+
+    | INPUT_RED, INPUT_BLUE, INPUT_GREEN =>
+      color = get-fire-type-from-signal type
+      if @input-state[color] isnt value
+        @input-state[color] = value
+        if value
+          shoot-by-input!
+          if @fire-mode is FIRE_MODE_ALTERNATE
+            Timer.reset @timers.auto-fire-timer, auto-fire-speed * if @fire-mode is FIRE_MODE_ALTERNATE then 1 else 2
+
 
     #| INPUT_X => @input-state.x = value
     #| INPUT_Y => @input-state.y = value
@@ -298,9 +334,15 @@ update = (Δt, t) ->
 
   @timers.auto-fire-timer.target = auto-fire-speed * fire-timer-factor
 
-  if new-fire-mode is FIRE_MODE_ALTERNATE
-    if @timers.auto-fire-timer.elapsed and @input-state.fire
-      shoot!
+  if EXP_FIRE_MODE_IKARUGA
+    if new-fire-mode is FIRE_MODE_ALTERNATE
+      if @timers.auto-fire-timer.elapsed and @input-state.fire
+          shoot-by-rotation!
+
+  else
+    if new-fire-mode is FIRE_MODE_ALTERNATE
+      if @timers.auto-fire-timer.elapsed and (@input-state.red or @input-state.blue or @input-state.green)
+        shoot-by-input!
 
   if @fire-mode isnt new-fire-mode
     if new-fire-mode is FIRE_MODE_ALTERNATE

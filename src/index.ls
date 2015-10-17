@@ -4,7 +4,7 @@
 #
 
 { id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
-{ wrap, rgb, lerp, rnd, random-range } = require \std
+{ wrap, rgb, lerp, rnd, random-range, delay } = require \std
 
 require \./global
 
@@ -79,7 +79,6 @@ shoot-by-input = ->
     game-state.player-bullets.push new Bullet right, color
   game-state.shoot-alternate = not game-state.shoot-alternate
 
-
 get-fire-type-from-signal = ->
   switch it
   | INPUT_RED   => \red
@@ -127,14 +126,16 @@ spawn = ->
     targets.push new Target2 [300  y + 600], [1 1 0]
 
 
-# Shared Gamestate
+#
+# Master Gamestate
+#
 
 global.game-state =
 
-  world-time: 0
   Δt: 0
+  world-time: 0
 
-  camera-zoom: 0.7
+  camera-zoom: 1
   camera-pos: [0 0]
 
   time-factor: 0.1
@@ -408,14 +409,15 @@ update = (Δt, t) ->
   # Camera tracking
   #
 
-  #@camera-pos.0 = @player.pos.0
-  @camera-pos.1 = @player.pos.1 + 200
+  @camera-pos.0 = @player.pos.0
+  @camera-pos.1 = @player.pos.1
 
-  if @camera-pos.0 - @player.pos.0 > camera-drift-limit
-    @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)
+  if EXP_USE_LOOSE_CAMERA_TRACKING
+    if @camera-pos.0 - @player.pos.0 > camera-drift-limit
+      @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)
 
-  if @player.pos.0 - @camera-pos.0 > camera-drift-limit
-    @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
+    if @player.pos.0 - @camera-pos.0 > camera-drift-limit
+      @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
 
 
   #
@@ -427,6 +429,11 @@ update = (Δt, t) ->
 
 
 
+  # Update backdrop
+
+  main-canvas.update-bg @Δt
+
+
 #
 # INIT
 #
@@ -434,11 +441,12 @@ update = (Δt, t) ->
 global.frame-driver = new FrameDriver
 frame-driver.on-frame render.bind game-state
 frame-driver.on-tick update.bind game-state
-frame-driver.start!
 
 
 # Init - assign
 
-main-canvas.install  document.body
-debug-vis.install document.body
+main-canvas.install document.body
+debug-vis.install   document.body
+
+frame-driver.start!
 

@@ -60,6 +60,12 @@ global.EXP_DIRECTIONAL_LASERS = not EXP_MAGNET_AND_LASER
 global.EXP_BACKWARDS_TIME_REWIND = on
 global.EXP_BACKWARDS_TIME_SKIPPING = not EXP_BACKWARDS_TIME_REWIND
 
+# Allow sideays movement
+global.EXP_USE_LOOSE_CAMERA_TRACKING = off
+
+# Draw a placeholder background
+global.EXP_DRAW_BACKGROUND = off
+
 
 #
 # Global options

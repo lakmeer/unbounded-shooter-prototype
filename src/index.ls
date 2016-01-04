@@ -29,8 +29,8 @@ Timer  = require \./timer
 # Config
 #
 
-auto-travel-speed      = 500
-max-speed              = 500
+auto-travel-speed      = 1000
+max-speed              = 1000
 auto-fire-speed        = 0.04
 dual-fire-separation   = 35
 camera-drift-limit     = 200   # TODO: Make camera seek center gradually
@@ -412,14 +412,17 @@ update = (Δt, t) ->
   # Camera tracking
   #
 
-  #@camera-pos.0 = @player.pos.0
   @camera-pos.1 = @player.pos.1 + 200
 
-  if @camera-pos.0 - @player.pos.0 > camera-drift-limit
-    @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)
+  if LERP_CAMERA_X
+    @camera-pos.0 = lerp 20 * @Δt, @camera-pos.0, @player.pos.0
 
-  if @player.pos.0 - @camera-pos.0 > camera-drift-limit
-    @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
+  else
+    if @camera-pos.0 - @player.pos.0 > camera-drift-limit
+      @camera-pos.0 -= (@camera-pos.0 - @player.pos.0 - camera-drift-limit)
+
+    if @player.pos.0 - @camera-pos.0 > camera-drift-limit
+      @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
 
 
   #

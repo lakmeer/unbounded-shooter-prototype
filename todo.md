@@ -72,6 +72,9 @@
   - Controller input completionism?
   - Could be Magenta mode because X and B are hard to push together
 
+- Bullet Cancelling
+- Laser Cancelling
+
 
 ### Enemies must be killed by same or different light?
 

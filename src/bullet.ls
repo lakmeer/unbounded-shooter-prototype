@@ -11,7 +11,7 @@
 export class Bullet
   (pos, color) ->
     @pos   = [ pos.0, pos.1 ]
-    @vel   = [ 0 3000 ]
+    @vel   = [ 0 10000 ]
     @size  = [ 80 220 ]
     @life  = 1
     @Δlife = 1

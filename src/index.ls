@@ -17,6 +17,7 @@ require \./global
 { Tween }       = require \./tween
 { Bullet, BlendBullet, SuperBullet } = require \./bullet
 { Target1, Target2, Target3 } = require \./target
+{ RandomStream } = require \./random-stream
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -42,10 +43,11 @@ hit-radius             = 25
 # INIT
 #
 
-main-canvas  = new Blitter
-input        = new Input
-flipflopper  = new FlipFlopper speed: 0.2
-debug-vis    = new DebugVis flipflopper
+main-canvas   = new Blitter
+input         = new Input
+flipflopper   = new FlipFlopper speed: 0.2
+debug-vis     = new DebugVis flipflopper
+thrust-length = new RandomStream min: 5, max: 50, speed: 0.01
 
 
 # Misc functions
@@ -203,7 +205,7 @@ render = (Δt, t) ->
   for target in @targets
     target.draw main-canvas
 
-  len = random-range 5, 50
+  len = thrust-length.get-value! # random-range 5, 50
 
   main-canvas.rect  @player.pos `v2.add` [0 -500], [ 3, 1000 ], color: player-color
   main-canvas.sprite player-sprite, @player.pos, player-sprite-size
@@ -237,6 +239,8 @@ update = (Δt, t) ->
   Tween.update-all @Δt
   Timer.update-and-carry @timers.auto-fire-timer, @Δt
   input.update @Δt, @world-time  # Debug only - real input controller doesn't need timers
+
+  thrust-length.update @Δt
 
 
   # Consume input events

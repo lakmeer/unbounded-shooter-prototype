@@ -33,7 +33,7 @@ export class DebugVis
     # Components
     @color-wheel   = new ColorWheel          @ctx, height/9
     @controller    = new ControllerState     @ctx, [300, 100], @flipflopper
-    @rotation-hist = new RotationHistory     @ctx, 200
+    @rotation-hist = new RotationHistory     @ctx, 300
     @ease-demo     = new EasingDemonstration @ctx, [width, 100]
 
   clear: ->

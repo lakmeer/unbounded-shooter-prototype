@@ -5,6 +5,7 @@
 { rotation-to-color } = require \../common
 
 { Drawing } = require \./mixins
+{ LimitedArray } = require \../limited-array
 
 
 #
@@ -14,14 +15,12 @@
 export class RotationHistory implements Drawing
 
   (@ctx, @limit = 200) ->
-    @history = []
+    @history = new LimitedArray @limit
 
   push: (n) ->
     @history.push n
-    if @history.length >= @limit
-      @history.shift!
 
   draw: (width, height) ->
-    for d, x in @history
+    for d, x in @history.items
       @box-at [x/@limit * width, height - 10 - d * 10], [2 2], rgb colors[ rotation-to-color d ]
 

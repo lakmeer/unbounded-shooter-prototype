@@ -128,7 +128,8 @@
   - Sector binning
     - Turn whole world 45° to make binning easier?
   - Basic collision algorithm
-  - Segregate world time and program time
+  - Segregate world time and program time more explicitly (@Δt is hax)
+  - Audio
 - Input
   - Fix deadzone so axes don't act independantly
 - World
@@ -142,7 +143,8 @@
   - Flipflop mode: Restrict blended fire to a max fire rate
   - Enemy firing
   - Player physics?? shmup guidelines say no but could feel good
-
+- Diligence
+  - Modernizr
 
 ### TODO: Experimental features
 

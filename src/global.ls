@@ -36,6 +36,11 @@ global.INPUT_Y          = Symbol \input-move-y
 global.INPUT_RAW_X      = Symbol \input-raw-x
 global.INPUT_RAW_Y      = Symbol \input-raw-y
 
+# Asset load status
+
+global.ASSET_LOAD_COMPLETE = Symbol \load-complete
+global.ASSET_LOAD_FAILED   = Symbol \load-failed
+
 
 #
 # Experimental feature switches
@@ -68,4 +73,6 @@ global.EXP_BACKWARDS_TIME_SKIPPING = not EXP_BACKWARDS_TIME_REWIND
 global.GAMEPAD_AXIS_DEADZONE = 0.2
 global.DEBUG_SHOW_EASING_TESTS = no
 global.LERP_CAMERA_X = on
+global.DEBUG_DISABLE_AUDIO = no
+global.DEBUG_SIMULATE_LATENCY = no
 

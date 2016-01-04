@@ -4,13 +4,14 @@
 #
 
 { id, log, floor, abs, tau, sin, cos, div, v2 } = require \std
-{ wrap, rgb, lerp, rnd, random-range } = require \std
+{ delay, wrap, rgb, lerp, rnd, random-range } = require \std
 
 require \./global
 
 { FrameDriver } = require \./frame-driver
 { FlipFlopper } = require \./flipflopper
 { DebugVis }    = require \./debug
+{ AudioOutput } = require \./audio-output
 { Blitter }     = require \./blitter
 { Sprite }      = require \./sprite
 { Input }       = require \./input
@@ -18,6 +19,7 @@ require \./global
 { Bullet, BlendBullet, SuperBullet } = require \./bullet
 { Target1, Target2, Target3 } = require \./target
 { RandomStream } = require \./random-stream
+{ Sound }        = require \./sound
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -43,6 +45,7 @@ hit-radius             = 25
 # INIT
 #
 
+main-audio    = new AudioOutput
 main-canvas   = new Blitter
 input         = new Input
 flipflopper   = new FlipFlopper speed: 0.2
@@ -50,9 +53,12 @@ debug-vis     = new DebugVis flipflopper
 thrust-length = new RandomStream min: 5, max: 50, speed: 0.01
 
 
+
 # Misc functions
 
 shoot-by-rotation = ->
+  main-audio.play shot-sound
+
   if game-state.fire-mode is FIRE_MODE_BLEND
     mid = game-state.player.pos `v2.add` [0 170]
     game-state.player-bullets.push new BlendBullet mid, colors[game-state.player.color + 0]
@@ -67,6 +73,8 @@ shoot-by-rotation = ->
     game-state.shoot-alternate = not game-state.shoot-alternate
 
 shoot-by-input = ->
+  main-audio.play shot-sound
+
   color = [
     if game-state.input-state.red   then 1 else 0
     if game-state.input-state.green then 1 else 0
@@ -90,6 +98,7 @@ get-fire-type-from-signal = ->
   | otherwise => log "Can't recognise Radiant fire mode:", it
 
 super-shoot = ->
+  main-audio.play shot-sound
   mid = game-state.player.pos `v2.add` [0 170]
   game-state.player-bullets.push new SuperBullet mid, [1 1 1]
 
@@ -185,7 +194,10 @@ global.game-state =
 #
 
 player-sprite = new Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
+shot-sound    = new Sound  \/assets/shot.mp3, main-audio.get-context!
+
 player-sprite-size = [ 70 80 ]
+
 
 render = (Δt, t) ->
   p = Timer.get-progress @timers.flip-flop-timer

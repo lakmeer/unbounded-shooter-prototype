@@ -76,7 +76,7 @@ shoot-by-rotation = ->
 shoot-by-input = ->
   main-audio.play shot-sound
 
-  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 3], time: 0.2
+  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 2], time: 0.1
 
   color = [
     if game-state.input-state.red   then 1 else 0
@@ -104,7 +104,7 @@ super-shoot = ->
   main-audio.play shot-sound
   mid = game-state.player.pos `v2.add` [0 170]
   game-state.player-bullets.push new SuperBullet mid, [1 1 1]
-  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 10], time: 0.3
+  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 10], time: 0.1
 
 spawn = ->
   targets = game-state.targets
@@ -201,7 +201,9 @@ global.game-state =
 #
 
 player-sprite = new Sprite \/assets/player-sprite.png, [ 100, 120 ], 24
-shot-sound    = new Sound  \/assets/shot.mp3, main-audio.get-context!
+shot-sound    = new Sound  \/assets/shot.mp3,  main-audio.get-context!, volume: 0.6
+impact-sound  = new Sound  \/assets/impact.mp3, main-audio.get-context!
+explode-sound = new Sound  \/assets/explode.mp3, main-audio.get-context!
 
 player-sprite-size = [ 70 80 ]
 
@@ -407,6 +409,9 @@ update = (Δt, t) ->
       dist = (target.pos `v2.dist` bullet.pos)
 
       if dist <= (target.radius + bullet.radius)
+
+        main-audio.play impact-sound
+
         target-value = color-sum target.color
         bullet-value = color-sum bullet.color
 
@@ -425,8 +430,13 @@ update = (Δt, t) ->
         if bullet.power <= 0
           bullet.life = 0
 
-    target.health >= 0
+    alive = target.health >= 0
 
+    if not alive
+      @camera-offset-effects.push new CameraShakeEffect offset: [10 10], time: 0.5
+      main-audio.play explode-sound
+
+    return alive
 
   #
   # Camera tracking
@@ -477,6 +487,4 @@ frame-driver.start!
 
 main-canvas.install  document.body
 debug-vis.install document.body
-
-game-state.camera-offset-effects.push new CameraShakeEffect offset: [10 10], time: 2
 

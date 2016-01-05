@@ -33,7 +33,7 @@ export class Sound
     req.send!
 
 
-  (@url, @ctx) ->
+  (@url, @ctx, { @volume = 1 } = {}) ->
 
     log @buffer = @ctx.create-buffer 2, 2, 44100
 

@@ -1,7 +1,7 @@
 
-{ id, log } = require \std
+# Require
 
-{ RandomStream } = require \./random-stream
+{ id, log } = require \std
 
 
 #
@@ -28,11 +28,13 @@ export class CameraJoltEffect
 
 export class CameraShakeEffect
 
+  { RandomStream } = require \./random-stream
+
   ({ @offset, @time }) ->
     @elapsed-time = 0
     @progress = 0
-    @random-x = new RandomStream min: -@offset.0, max: @offset.0
-    @random-y = new RandomStream min: -@offset.1, max: @offset.1
+    @random-x = new RandomStream min: -@offset.0, max: @offset.0, speed: @time / 1000
+    @random-y = new RandomStream min: -@offset.1, max: @offset.1, speed: @time / 1000
 
   update: (Δt) ->
     @elapsed-time += Δt

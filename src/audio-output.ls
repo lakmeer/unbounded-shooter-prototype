@@ -44,7 +44,12 @@ export class AudioOutput
   play: (sound) ->
     source = context.create-buffer-source!
     source.buffer = sound.buffer
-    source.connect context.destination
+
+    gain = context.create-gain!
+    gain.gain.value = sound.volume
+
+    source.connect gain
+    gain.connect context.destination
     source.start!
 
   @Null =

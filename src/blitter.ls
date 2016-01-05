@@ -10,19 +10,20 @@
 
 export class Blitter
 
-  bg-aspect = 0.3125
-  bg-scroll-speed = 20
+  if EXP_DRAW_BACKGROUND
+    bg-aspect = 0.3125
+    bg-scroll-speed = 10
 
-  bg = new Image
-  bg.src = \/assets/bg.jpg
-  bg.onload = -> bg-aspect := bg.width / bg.height
+    bg = new Image
+    bg.src = \/assets/bg.jpg
+    bg.onload = -> bg-aspect := bg.width / bg.height
 
   mode-to-operation = (mode) ->
     switch mode
     | MODE_NORMAL => \source-over
     | MODE_COLOR  => \hue
     | MODE_ADD    => \lighten
-    | otherwise  => \source-over
+    | otherwise   => \source-over
 
   local-grid-size      = 1000
   local-grid-fidelity  = 100
@@ -33,6 +34,9 @@ export class Blitter
     @canvas = document.create-element \canvas
     @ctx = @canvas.get-context \2d
     @set-size [ window.inner-width, window.inner-height ]
+
+    if EXP_DRAW_BACKGROUND
+      @bg-pos = 0
 
   set-size: (size) ->
     if size.0 > size.1
@@ -89,11 +93,11 @@ export class Blitter
     @ctx.global-alpha = alpha
     @ctx.stroke-style = color
     @ctx.begin-path!
-    @ctx.move-to x - w/2, y - w/2
-    @ctx.line-to x + w/2, y - w/2
+    @ctx.move-to x - w/2, y - h/2
+    @ctx.line-to x + w/2, y - h/2
     @ctx.line-to x + w/2, y + h/2
     @ctx.line-to x - w/2, y + h/2
-    @ctx.line-to x - w/2, y - w/2
+    @ctx.line-to x - w/2, y - h/2
     @ctx.close-path!
     @ctx.stroke!
 
@@ -145,13 +149,15 @@ export class Blitter
     @ctx.line-to x - w/2, y - h/2
 
   clear: (t = 0) ->
-    bg-height = @w / bg-aspect
-    bg-offset = t * bg-scroll-speed % bg-height
     @ctx.clear-rect 0, 0, @w, @h
     @ctx.global-alpha = 1
     @ctx.global-composite-operation = mode-to-operation MODE_NORMAL
-    #@ctx.draw-image bg, 0, bg-offset, @w, bg-height
-    #@ctx.draw-image bg, 0, bg-offset - bg-height, @w, bg-height
+
+    if EXP_DRAW_BACKGROUND
+      bg-height = @w / bg-aspect
+      bg-offset = @bg-pos
+      @ctx.draw-image bg, 0, bg-offset, @w, bg-height
+      @ctx.draw-image bg, 0, bg-offset - bg-height, @w, bg-height
 
   draw-origin: ->
     [cx, cy] = game-state.camera-pos
@@ -160,6 +166,7 @@ export class Blitter
     @ctx.begin-path!
     @_line [0, cy - 1000], [0, cy + 1000]
     @_line [cx - 1000, 0], [cx + 1000, 0]
+    @_line [cx - 1000, cy], [cx + 1000, cy]
     @ctx.close-path!
     @ctx.stroke!
 
@@ -169,8 +176,6 @@ export class Blitter
     ny = cy - cy % local-grid-fidelity
     lgs-x = camera-frustrum-size.0/game-state.camera-zoom
     lgs-y = camera-frustrum-size.1/game-state.camera-zoom
-
-    @stroke-rect game-state.camera-pos, camera-frustrum-size, color: \yellow
 
     @ctx.stroke-style = \#0f0
     @ctx.begin-path!
@@ -182,6 +187,9 @@ export class Blitter
     @ctx.close-path!
     @ctx.stroke!
 
+    # Camera bounds
+    @stroke-rect game-state.camera-pos, camera-frustrum-size, color: \yellow
+
   sprite: ({ width, height, image, index }, pos, size) ->
     [x, y] = @translate-pos pos
     [w, h] = @translate-size size
@@ -189,4 +197,8 @@ export class Blitter
 
   install: (host) ->
     host.append-child @canvas
+
+  # TODO: Move bg to its own object
+  update-bg: (Δt) ->
+    @bg-pos += bg-scroll-speed * Δt
 

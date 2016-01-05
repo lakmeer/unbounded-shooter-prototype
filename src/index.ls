@@ -20,6 +20,7 @@ require \./global
 { Target1, Target2, Target3 } = require \./target
 { RandomStream } = require \./random-stream
 { Sound }        = require \./sound
+{ CameraJoltEffect, CameraShakeEffect } = require \./camera-offset-effects
 
 Ease   = require \./ease
 Timer  = require \./timer
@@ -75,6 +76,8 @@ shoot-by-rotation = ->
 shoot-by-input = ->
   main-audio.play shot-sound
 
+  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 3], time: 0.2
+
   color = [
     if game-state.input-state.red   then 1 else 0
     if game-state.input-state.green then 1 else 0
@@ -101,6 +104,7 @@ super-shoot = ->
   main-audio.play shot-sound
   mid = game-state.player.pos `v2.add` [0 170]
   game-state.player-bullets.push new SuperBullet mid, [1 1 1]
+  game-state.camera-offset-effects.push new CameraJoltEffect offset: [0 10], time: 0.3
 
 spawn = ->
   targets = game-state.targets
@@ -145,8 +149,9 @@ global.game-state =
   world-time: 0
   Δt: 0
 
-  camera-zoom: 0.7
+  camera-zoom: 1
   camera-pos: [0 0]
+  camera-offset: [0 0]
 
   time-factor: 0.1
 
@@ -187,6 +192,8 @@ global.game-state =
     mouse-y: 0
 
   targets: []
+
+  camera-offset-effects: []
 
 
 #
@@ -241,10 +248,9 @@ update = (Δt, t) ->
 
   # Update time
 
-  @Δt = Δt * if EXP_STRICT_TIME_BINDING then @time-factor else 1
+  @Δt = adjusted-time-delta = Δt * if EXP_STRICT_TIME_BINDING then @time-factor else 1
   @world-time += @Δt
   @system-time += Δt
-
 
   # Update timers
 
@@ -253,6 +259,8 @@ update = (Δt, t) ->
   input.update @Δt, @world-time  # Debug only - real input controller doesn't need timers
 
   thrust-length.update @Δt
+
+  @camera-offset-effects .= filter (.update adjusted-time-delta)
 
 
   # Consume input events
@@ -424,7 +432,7 @@ update = (Δt, t) ->
   # Camera tracking
   #
 
-  @camera-pos.1 = @player.pos.1 + 200
+  @camera-pos.1 = @player.pos.1 + 600
 
   if LERP_CAMERA_X
     @camera-pos.0 = lerp 20 * @Δt, @camera-pos.0, @player.pos.0
@@ -435,6 +443,15 @@ update = (Δt, t) ->
 
     if @player.pos.0 - @camera-pos.0 > camera-drift-limit
       @camera-pos.0 += (@player.pos.0 - @camera-pos.0 - camera-drift-limit)
+
+
+  # Add camera offset FX
+
+  @camera-offset.0 = @camera-offset.1 = 0
+
+  for effect in @camera-offset-effects
+    @camera-offset.0 += effect.get-x-offset!
+    @camera-offset.1 += effect.get-y-offset!
 
 
   #
@@ -460,4 +477,6 @@ frame-driver.start!
 
 main-canvas.install  document.body
 debug-vis.install document.body
+
+game-state.camera-offset-effects.push new CameraShakeEffect offset: [10 10], time: 2
 

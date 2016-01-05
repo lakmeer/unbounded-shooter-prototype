@@ -46,8 +46,8 @@ export class Blitter
     @hf = @h / camera-frustrum-size.1
 
   translate-pos: ([x, y], z = game-state.camera-zoom) ->
-    [ @w/2 + (x - game-state.camera-pos.0) * @wf * z,
-      @h/2 - (y - game-state.camera-pos.1) * @hf * z]
+    [ @w/2 + (x - (game-state.camera-pos.0 + game-state.camera-offset.0)) * @wf * z,
+      @h/2 - (y - (game-state.camera-pos.1 + game-state.camera-offset.1)) * @hf * z]
 
   translate-size: ([w, h], z = game-state.camera-zoom) ->
     [ w * @wf * z, h * @hf * z ]

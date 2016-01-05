@@ -130,6 +130,10 @@
   - Basic collision algorithm
   - Segregate world time and program time more explicitly (@Δt is hax)
   - Audio
+    - Move BufferSource, associated node chain into Sound class?
+    - While still playing by passing Sound to AudioOutput, simply pass AO's ctx
+      to Sound instance do it can decide how to play, eg: multiple instances,
+      or restart on play
 - Input
   - Fix deadzone so axes don't act independantly
 - World

@@ -10,6 +10,9 @@ export class RandomStream
     @buffer = new LimitedArray @buffer-size
     @time-to-next-value = 0
 
+    for i from 0 til @buffer-size
+      @buffer.push random-range @min, @max
+
   get-value: ->
     lerp @time-to-next-value/@speed, @buffer.items[0], @buffer.items[1]
 

@@ -47,8 +47,6 @@ export class AudioOutput
     source.connect context.destination
     source.start!
 
-    log sound
-
   @Null =
     add-sound: id
     get-buffer-with-url: id
